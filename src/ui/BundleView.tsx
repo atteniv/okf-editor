@@ -1,10 +1,33 @@
+import { useMemo } from "react";
 import { groupByType } from "../core/bundle";
-import { useStore } from "./store";
+import { splitFrontmatter } from "../core/frontmatter";
+import { renderMarkdown } from "../core/markdown";
+import { Editor } from "./Editor";
+import { useStore, type ViewMode } from "./store";
 
 const UNTYPED_LABEL = "(no type)";
+const MODES: { key: ViewMode; label: string }[] = [
+  { key: "edit", label: "Edit" },
+  { key: "split", label: "Split" },
+  { key: "preview", label: "Preview" },
+];
 
 export function BundleView() {
-  const { root, docs, selectedPath, selectDoc, closeBundle } = useStore();
+  const {
+    root,
+    docs,
+    selectedPath,
+    selectDoc,
+    closeBundle,
+    viewMode,
+    setViewMode,
+    draft,
+    dirty,
+    conflict,
+    error,
+    onEdit,
+    resolveConflict,
+  } = useStore();
   const groups = groupByType(docs);
   const selected = selectedPath !== null ? docs.get(selectedPath) : undefined;
 
@@ -12,7 +35,7 @@ export function BundleView() {
     <div className="bundle-view">
       <aside className="sidebar">
         <header>
-          <button onClick={closeBundle} title="Back to start">
+          <button onClick={() => void closeBundle()} title="Back to start">
             ←
           </button>
           <span className="bundle-name" title={root ?? ""}>
@@ -30,7 +53,7 @@ export function BundleView() {
                   <li key={doc.path}>
                     <button
                       className={doc.path === selectedPath ? "selected" : ""}
-                      onClick={() => selectDoc(doc.path)}
+                      onClick={() => void selectDoc(doc.path)}
                       title={doc.path}
                     >
                       {doc.title}
@@ -44,26 +67,67 @@ export function BundleView() {
       </aside>
 
       <section className="doc-pane">
-        {selected ? (
-          <article>
-            <header className="doc-header">
-              <h1>{selected.title}</h1>
+        {selected && selectedPath !== null && draft !== null ? (
+          <>
+            <header className="doc-toolbar">
               <div className="doc-meta">
                 <span className="doc-path">{selected.path}</span>
-                {selected.tags.map((tag) => (
-                  <span className="tag" key={tag}>
-                    {tag}
-                  </span>
+                <span className={dirty ? "save-state dirty" : "save-state"}>
+                  {dirty ? "●" : "Saved"}
+                </span>
+              </div>
+              <div className="mode-toggle">
+                {MODES.map(({ key, label }) => (
+                  <button
+                    key={key}
+                    className={viewMode === key ? "selected" : ""}
+                    onClick={() => setViewMode(key)}
+                  >
+                    {label}
+                  </button>
                 ))}
               </div>
             </header>
-            {/* Read-only for M1 week 1; the CodeMirror editor lands in week 2. */}
-            <pre className="doc-body">{selected.body}</pre>
-          </article>
+
+            {conflict && (
+              <div className="conflict-banner">
+                <span>
+                  This document changed on disk while you were editing.
+                </span>
+                <button onClick={() => void resolveConflict("reload")}>
+                  Reload from disk
+                </button>
+                <button onClick={() => void resolveConflict("keep-mine")}>
+                  Keep mine
+                </button>
+              </div>
+            )}
+            {error && <div className="error-banner">{error}</div>}
+
+            <div className={`work-area ${viewMode}`}>
+              {viewMode !== "preview" && (
+                <Editor docPath={selectedPath} value={draft} onChange={onEdit} />
+              )}
+              {viewMode !== "edit" && <Preview source={draft} />}
+            </div>
+          </>
         ) : (
           <p className="empty">Select a document from the tree.</p>
         )}
       </section>
     </div>
+  );
+}
+
+function Preview({ source }: { source: string }) {
+  // Preview renders the prose body; frontmatter isn't prose.
+  const html = useMemo(
+    () => renderMarkdown(splitFrontmatter(source).body),
+    [source],
+  );
+  // Safe: renderMarkdown is the app's single, always-sanitizing
+  // markdown pipeline (DESIGN §9).
+  return (
+    <div className="preview" dangerouslySetInnerHTML={{ __html: html }} />
   );
 }

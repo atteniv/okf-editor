@@ -157,19 +157,24 @@ button {
 }
 
 .doc-pane {
-  overflow-y: auto;
-  padding: 1.5rem 2rem;
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  overflow: hidden;
 }
 
-.doc-header h1 {
-  margin-bottom: 0.25rem;
+.doc-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.5rem 1rem;
+  border-bottom: 1px solid var(--border);
 }
 
 .doc-meta {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
-  flex-wrap: wrap;
+  gap: 0.75rem;
 }
 
 .doc-path {
@@ -178,19 +183,112 @@ button {
   font-family: ui-monospace, monospace;
 }
 
-.tag {
+.save-state {
   font-size: 0.75rem;
-  background: var(--border);
-  padding: 0.1rem 0.5rem;
-  border-radius: 999px;
+  color: var(--muted);
 }
 
-.doc-body {
-  margin-top: 1rem;
-  white-space: pre-wrap;
-  font-family: ui-monospace, monospace;
-  font-size: 0.9rem;
+.save-state.dirty {
+  color: var(--accent);
+}
+
+.mode-toggle {
+  display: flex;
+  gap: 0.25rem;
+}
+
+.mode-toggle button {
+  font-size: 0.8rem;
+  padding: 0.2rem 0.6rem;
+  border-radius: 4px;
+}
+
+.mode-toggle button:hover {
+  background: var(--border);
+}
+
+.mode-toggle button.selected {
+  background: var(--accent);
+  color: white;
+}
+
+.conflict-banner,
+.error-banner {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.5rem 1rem;
+  font-size: 0.85rem;
+  background: color-mix(in srgb, #f59e0b 15%, transparent);
+  border-bottom: 1px solid var(--border);
+}
+
+.error-banner {
+  background: color-mix(in srgb, #dc2626 12%, transparent);
+}
+
+.conflict-banner button {
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 0.15rem 0.6rem;
+}
+
+.conflict-banner button:hover {
+  background: var(--border);
+}
+
+.work-area {
+  flex: 1;
+  display: grid;
+  min-height: 0;
+}
+
+.work-area.split {
+  grid-template-columns: 1fr 1fr;
+}
+
+.work-area .editor {
+  overflow: hidden;
+  border-right: 1px solid var(--border);
+}
+
+.work-area.edit .editor {
+  border-right: none;
+}
+
+.work-area .editor .cm-editor {
+  height: 100%;
+}
+
+.work-area .editor .cm-editor.cm-focused {
+  outline: none;
+}
+
+.work-area .editor .cm-scroller {
+  overflow: auto;
+}
+
+.preview {
+  overflow-y: auto;
+  padding: 1rem 1.5rem;
   line-height: 1.6;
+}
+
+.preview :is(img, table) {
+  max-width: 100%;
+}
+
+.preview code {
+  background: var(--border);
+  padding: 0.1em 0.3em;
+  border-radius: 3px;
+  font-size: 0.9em;
+}
+
+.preview pre code {
+  display: block;
+  padding: 0.75em;
+  overflow-x: auto;
 }
 
 .empty {
