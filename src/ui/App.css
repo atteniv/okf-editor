@@ -1,23 +1,201 @@
 :root {
   font-family: system-ui, -apple-system, sans-serif;
   color-scheme: light dark;
+  --border: color-mix(in srgb, currentColor 15%, transparent);
+  --muted: color-mix(in srgb, currentColor 55%, transparent);
+  --accent: #2563eb;
 }
 
 body {
   margin: 0;
 }
 
-.app-shell {
+button {
+  font: inherit;
+  color: inherit;
+  background: none;
+  border: none;
+  cursor: pointer;
+}
+
+/* ---- Start screen ---- */
+
+.start-screen {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   min-height: 100vh;
-  gap: 0.5rem;
+  gap: 0.75rem;
   text-align: center;
+  padding: 1rem;
 }
 
-.status {
-  opacity: 0.6;
+.start-screen .primary {
+  background: var(--accent);
+  color: white;
+  padding: 0.6rem 1.2rem;
+  border-radius: 6px;
+  font-size: 1rem;
+}
+
+.start-screen .error {
+  color: #dc2626;
+  max-width: 32rem;
+}
+
+.recents {
+  margin-top: 1.5rem;
+  min-width: 20rem;
+}
+
+.recents h2 {
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--muted);
+}
+
+.recents ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.recents li button {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  width: 100%;
+  padding: 0.5rem 0.75rem;
+  border-radius: 6px;
+  text-align: left;
+}
+
+.recents li button:hover {
+  background: var(--border);
+}
+
+.recents .path {
+  font-size: 0.75rem;
+  color: var(--muted);
+}
+
+/* ---- Bundle view ---- */
+
+.bundle-view {
+  display: grid;
+  grid-template-columns: 260px 1fr;
+  height: 100vh;
+}
+
+.sidebar {
+  border-right: 1px solid var(--border);
+  overflow-y: auto;
+  padding: 0.5rem;
+}
+
+.sidebar header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.25rem 0.5rem 0.75rem;
+  font-weight: 600;
+}
+
+.sidebar header button {
+  padding: 0.15rem 0.4rem;
+  border-radius: 4px;
+}
+
+.sidebar header button:hover {
+  background: var(--border);
+}
+
+.bundle-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.doc-tree h2 {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--muted);
+  margin: 0.75rem 0.5rem 0.25rem;
+}
+
+.doc-tree .count {
+  font-weight: normal;
+}
+
+.doc-tree ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.doc-tree li button {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 0.3rem 0.5rem;
+  border-radius: 4px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.doc-tree li button:hover {
+  background: var(--border);
+}
+
+.doc-tree li button.selected {
+  background: var(--accent);
+  color: white;
+}
+
+.doc-pane {
+  overflow-y: auto;
+  padding: 1.5rem 2rem;
+}
+
+.doc-header h1 {
+  margin-bottom: 0.25rem;
+}
+
+.doc-meta {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.doc-path {
+  font-size: 0.8rem;
+  color: var(--muted);
+  font-family: ui-monospace, monospace;
+}
+
+.tag {
+  font-size: 0.75rem;
+  background: var(--border);
+  padding: 0.1rem 0.5rem;
+  border-radius: 999px;
+}
+
+.doc-body {
+  margin-top: 1rem;
+  white-space: pre-wrap;
+  font-family: ui-monospace, monospace;
   font-size: 0.9rem;
+  line-height: 1.6;
+}
+
+.empty {
+  color: var(--muted);
+  display: grid;
+  place-items: center;
+  height: 100%;
 }
