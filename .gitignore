@@ -40,3 +40,6 @@ coverage/
 
 # Claude Code local config
 .claude/
+
+# Vite cache
+.vite/

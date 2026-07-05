@@ -1,17 +1,11 @@
 import "./App.css";
+import { BundleView } from "./BundleView";
+import { StartScreen } from "./StartScreen";
+import { useStore } from "./store";
 
-// Pre-MVP shell. M1 replaces this with the recent-projects screen
-// (docs/DESIGN.md §6.1).
 function App() {
-  return (
-    <main className="app-shell">
-      <h1>OKF Editor</h1>
-      <p>
-        A local-first, schema-aware editor for Open Knowledge Format bundles.
-      </p>
-      <p className="status">Pre-MVP — see docs/PLAN.md for the roadmap.</p>
-    </main>
-  );
+  const view = useStore((state) => state.view);
+  return view === "bundle" ? <BundleView /> : <StartScreen />;
 }
 
 export default App;
