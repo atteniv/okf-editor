@@ -1,0 +1,72 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+# Least privilege — no job needs write access.
+permissions:
+  contents: read
+
+# Cancel superseded runs on the same ref.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # Frontend lint/typecheck/test/build. Guarded so the repo stays green until the
+  # app is scaffolded (no package.json yet → skip gracefully).
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check for a Node project
+        id: detect
+        run: |
+          if [ -f package.json ]; then
+            echo "present=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "present=false" >> "$GITHUB_OUTPUT"
+            echo "No package.json yet — nothing to build. Skipping."
+          fi
+      - uses: actions/setup-node@v4
+        if: steps.detect.outputs.present == 'true'
+        with:
+          node-version: 20
+      - name: Install
+        if: steps.detect.outputs.present == 'true'
+        run: npm ci || npm install
+      - name: Lint
+        if: steps.detect.outputs.present == 'true'
+        run: npm run lint --if-present
+      - name: Typecheck
+        if: steps.detect.outputs.present == 'true'
+        run: npm run typecheck --if-present
+      - name: Test
+        if: steps.detect.outputs.present == 'true'
+        run: npm test --if-present
+      - name: Build
+        if: steps.detect.outputs.present == 'true'
+        run: npm run build --if-present
+
+  # Every commit in a PR must be signed off (DCO). See CONTRIBUTING.md.
+  dco:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Verify Signed-off-by on all PR commits
+        run: |
+          base="${{ github.event.pull_request.base.sha }}"
+          head="${{ github.event.pull_request.head.sha }}"
+          missing=0
+          for sha in $(git rev-list "$base".."$head"); do
+            if ! git log -1 --format=%B "$sha" | grep -qiE '^Signed-off-by: .+ <.+@.+>'; then
+              echo "::error::Commit $sha is missing a Signed-off-by line (use 'git commit -s')."
+              missing=1
+            fi
+          done
+          exit $missing
