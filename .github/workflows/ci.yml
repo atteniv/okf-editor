@@ -15,40 +15,56 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  # Frontend lint/typecheck/test/build. Guarded so the repo stays green until the
-  # app is scaffolded (no package.json yet → skip gracefully).
+  # Frontend: lint, typecheck, test, build.
   build:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Check for a Node project
-        id: detect
-        run: |
-          if [ -f package.json ]; then
-            echo "present=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "present=false" >> "$GITHUB_OUTPUT"
-            echo "No package.json yet — nothing to build. Skipping."
-          fi
-      - uses: actions/setup-node@v4
-        if: steps.detect.outputs.present == 'true'
+      - uses: pnpm/action-setup@v4
         with:
-          node-version: 20
+          version: 10
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
       - name: Install
-        if: steps.detect.outputs.present == 'true'
-        run: npm ci || npm install
+        run: pnpm install --frozen-lockfile
       - name: Lint
-        if: steps.detect.outputs.present == 'true'
-        run: npm run lint --if-present
+        run: pnpm lint
       - name: Typecheck
-        if: steps.detect.outputs.present == 'true'
-        run: npm run typecheck --if-present
+        run: pnpm typecheck
       - name: Test
-        if: steps.detect.outputs.present == 'true'
-        run: npm test --if-present
+        run: pnpm test
       - name: Build
-        if: steps.detect.outputs.present == 'true'
-        run: npm run build --if-present
+        run: pnpm build
+      - name: Audit (production deps)
+        run: pnpm audit --prod --audit-level high
+
+  # Rust: fmt, clippy, tests. Needs Tauri's Linux system deps to compile.
+  rust:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Tauri system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev build-essential curl wget file \
+            libxdo-dev libssl-dev libayatana-appindicator3-dev librsvg2-dev
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+      - name: Format
+        run: cargo fmt --check
+        working-directory: src-tauri
+      - name: Clippy
+        run: cargo clippy --all-targets -- -D warnings
+        working-directory: src-tauri
+      - name: Test
+        run: cargo test
+        working-directory: src-tauri
 
   # Every commit in a PR must be signed off (DCO). See CONTRIBUTING.md.
   dco:

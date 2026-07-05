@@ -22,23 +22,40 @@ Please open an issue to discuss before building anything large or scope-expandin
 
 ## Development setup
 
-> The app is pre-MVP; these instructions will be filled in as the scaffolding lands.
-
-Prerequisites (planned): [Rust](https://rustup.rs), Node.js LTS + a package manager,
-and the [Tauri prerequisites](https://tauri.app/start/prerequisites/) for your OS.
+Prerequisites: [Rust](https://rustup.rs) (stable), Node.js ≥ 22 with
+[pnpm](https://pnpm.io) ≥ 10, and the
+[Tauri prerequisites](https://tauri.app/start/prerequisites/) for your OS
+(on Linux that includes WebKitGTK dev packages — see the list in
+[`.github/workflows/ci.yml`](.github/workflows/ci.yml)).
 
 ```bash
 # install deps
-<pkg> install
+pnpm install
 
-# run the app in dev
-<pkg> tauri dev
+# run the app in dev (starts Vite + the Tauri window)
+pnpm tauri dev
 
-# lint / typecheck / test
-<pkg> lint
-<pkg> typecheck
-<pkg> test
+# lint / typecheck / test (what CI runs)
+pnpm lint
+pnpm typecheck
+pnpm test
+
+# Rust checks (run from src-tauri/)
+cargo fmt --check && cargo clippy --all-targets -- -D warnings && cargo test
 ```
+
+### Code layout
+
+- `src/core/` — pure TypeScript (no Tauri, no DOM): bundle index, schema
+  engine, lint rules. Unit-tested with Vitest.
+- `src/platform/` — the **only** module that may import Tauri APIs
+  (lint-enforced). Everything else sees the `Platform` interface.
+- `src/ui/` — React components.
+- `src-tauri/` — the Rust command boundary: fs, git, keychain, GitHub.
+- `fixtures/` — sample OKF bundles used by tests.
+- `schemas/` — published JSON Schemas (e.g. for `.okf-editor.json`).
+
+See [`docs/DESIGN.md`](docs/DESIGN.md) for why these boundaries exist.
 
 ## Pull request process
 

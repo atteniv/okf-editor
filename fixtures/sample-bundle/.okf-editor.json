@@ -1,0 +1,22 @@
+{
+  "$schema": "https://raw.githubusercontent.com/atteniv/okf-editor/main/schemas/okf-editor.schema.json",
+  "types": {
+    "guide": {
+      "label": "Guide",
+      "fields": [
+        { "key": "title", "kind": "string", "required": true },
+        { "key": "owner", "kind": "string" },
+        { "key": "tags", "kind": "tags" }
+      ]
+    },
+    "policy": {
+      "label": "Policy",
+      "fields": [
+        { "key": "title", "kind": "string", "required": true },
+        { "key": "tags", "kind": "tags" },
+        { "key": "status", "kind": "enum", "values": ["draft", "published", "deprecated"] }
+      ]
+    }
+  },
+  "tagVocabulary": ["fixture", "onboarding", "policy"]
+}

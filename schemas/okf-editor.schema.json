@@ -1,0 +1,72 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/atteniv/okf-editor/main/schemas/okf-editor.schema.json",
+  "title": "OKF Editor project configuration (.okf-editor.json)",
+  "description": "Per-bundle overrides for the OKF Editor's schema-aware frontmatter form, tag vocabulary, and lint rules. Deep-merged over the editor's shipped defaults. See docs/DESIGN.md §5.",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "$schema": { "type": "string" },
+    "types": {
+      "description": "Frontmatter form definition per OKF `type` value.",
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "label": { "type": "string" },
+          "template": {
+            "type": "string",
+            "description": "Bundle-relative path to the new-document template for this type."
+          },
+          "fields": {
+            "type": "array",
+            "items": { "$ref": "#/$defs/field" }
+          }
+        }
+      }
+    },
+    "tagVocabulary": {
+      "description": "Replaces the shipped starter taxonomy when present.",
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "allowUnknownTags": { "type": "boolean", "default": true },
+    "wikiLinks": {
+      "type": "boolean",
+      "default": false,
+      "description": "Enable [[wiki-link]] autocomplete in addition to markdown links."
+    },
+    "lint": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "disable": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Rule IDs to disable (okflint-compatible IDs)."
+        }
+      }
+    }
+  },
+  "$defs": {
+    "field": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["key", "kind"],
+      "properties": {
+        "key": { "type": "string" },
+        "kind": {
+          "enum": ["string", "text", "enum", "tags", "date", "boolean", "number", "doc-ref"]
+        },
+        "label": { "type": "string" },
+        "required": { "type": "boolean", "default": false },
+        "values": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Allowed values; only meaningful for kind: enum."
+        }
+      }
+    }
+  }
+}
