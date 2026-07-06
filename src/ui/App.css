@@ -156,6 +156,109 @@ button {
   color: white;
 }
 
+.sidebar {
+  display: flex;
+  flex-direction: column;
+}
+
+.sidebar .doc-tree {
+  flex: 1;
+}
+
+.problem-dot {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #f59e0b;
+  margin-left: 0.4rem;
+  vertical-align: middle;
+}
+
+.problems {
+  border-top: 1px solid var(--border);
+  padding-top: 0.25rem;
+}
+
+.problems-header {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  width: 100%;
+  padding: 0.3rem 0.5rem;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--muted);
+}
+
+.problems-header .chevron {
+  margin-left: auto;
+}
+
+.problems-list {
+  list-style: none;
+  margin: 0;
+  padding: 0 0.25rem 0.5rem;
+  max-height: 30vh;
+  overflow-y: auto;
+  font-size: 0.8rem;
+}
+
+.problems-list > li > button {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 0.3rem 0.5rem;
+  border-radius: 4px;
+}
+
+.problems-list > li > button:hover {
+  background: var(--border);
+}
+
+.problem-path {
+  font-family: ui-monospace, monospace;
+  font-size: 0.75rem;
+  color: var(--muted);
+}
+
+.problems-list ul {
+  list-style: none;
+  margin: 0.15rem 0 0;
+  padding: 0 0 0 0.5rem;
+}
+
+.problems-list li.error {
+  color: #dc2626;
+}
+
+.problems-list li.warning {
+  color: #b45309;
+}
+
+.fm-diagnostics {
+  list-style: none;
+  margin: 0;
+  padding: 0.35rem 1rem;
+  border-bottom: 1px solid var(--border);
+  font-size: 0.8rem;
+  flex-shrink: 0;
+}
+
+.fm-diagnostics li.error {
+  color: #dc2626;
+}
+
+.fm-diagnostics li.warning {
+  color: #b45309;
+}
+
+.fm-diagnostics .rule {
+  color: var(--muted);
+  font-size: 0.7rem;
+}
+
 .doc-pane {
   display: flex;
   flex-direction: column;

@@ -1,23 +1,44 @@
+import {
+  autocompletion,
+  type CompletionContext,
+  type CompletionResult,
+} from "@codemirror/autocomplete";
 import { markdown } from "@codemirror/lang-markdown";
+import { linter, type Diagnostic as CmDiagnostic } from "@codemirror/lint";
 import { EditorView } from "@codemirror/view";
 import { basicSetup } from "codemirror";
 import { useEffect, useRef } from "react";
+import type { Diagnostic } from "../core/lint";
 
 interface EditorProps {
   /** Doc identity — remounting state when the user switches documents. */
   docPath: string;
   value: string;
   onChange: (text: string) => void;
+  /** Body-scoped diagnostics for the current draft (offsets into value). */
+  diagnostics: Diagnostic[];
+  /** Link-autocomplete candidates, already relative to this doc. */
+  linkTargets: string[];
 }
 
 /** Thin React wrapper around CodeMirror 6. */
-export function Editor({ docPath, value, onChange }: EditorProps) {
+export function Editor({
+  docPath,
+  value,
+  onChange,
+  diagnostics,
+  linkTargets,
+}: EditorProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const viewRef = useRef<EditorView | null>(null);
   const onChangeRef = useRef(onChange);
+  const diagnosticsRef = useRef(diagnostics);
+  const linkTargetsRef = useRef(linkTargets);
   useEffect(() => {
     onChangeRef.current = onChange;
-  }, [onChange]);
+    diagnosticsRef.current = diagnostics;
+    linkTargetsRef.current = linkTargets;
+  }, [onChange, diagnostics, linkTargets]);
 
   // (Re)create the view when the document identity changes.
   useEffect(() => {
@@ -33,6 +54,41 @@ export function Editor({ docPath, value, onChange }: EditorProps) {
           if (update.docChanged) {
             onChangeRef.current(update.state.doc.toString());
           }
+        }),
+        // Diagnostics come from core/lint via the ref; re-runs on doc changes.
+        linter(
+          (view) => {
+            const max = view.state.doc.length;
+            return diagnosticsRef.current
+              .filter((d) => d.where === "body" && d.from !== undefined)
+              .filter((d) => d.from! <= max && d.to! <= max)
+              .map(
+                (d): CmDiagnostic => ({
+                  from: d.from!,
+                  to: d.to!,
+                  severity: d.severity,
+                  message: `${d.message} (${d.rule})`,
+                }),
+              );
+          },
+          { delay: 300 },
+        ),
+        autocompletion({
+          override: [
+            (context: CompletionContext): CompletionResult | null => {
+              // Complete doc paths inside markdown link destinations: ](…
+              const match = context.matchBefore(/\]\([^()\s]*/);
+              if (match === null) return null;
+              return {
+                from: match.from + 2,
+                options: linkTargetsRef.current.map((path) => ({
+                  label: path,
+                  type: "text",
+                })),
+                validFor: /^[^()\s]*$/,
+              };
+            },
+          ],
         }),
       ],
     });

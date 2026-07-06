@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import { buildBacklinks, buildIndex, parseDoc, type DocMeta } from "../core/bundle";
 import { joinFrontmatter, splitFrontmatter } from "../core/frontmatter";
+import { lintBundle, type Diagnostic } from "../core/lint";
 import {
   CONFIG_FILENAME,
   DEFAULT_SCHEMA,
@@ -50,6 +51,8 @@ interface AppState {
   /** Resolved schema: project .okf-editor.json over the shipped default. */
   schema: SchemaConfig;
   schemaError: string | null;
+  /** Bundle-wide lint findings, path → diagnostics (saved state, not draft). */
+  problems: Map<string, Diagnostic[]>;
 
   openFolder(): Promise<void>;
   openBundle(root: string): Promise<void>;
@@ -131,7 +134,11 @@ export const useStore = create<AppState>((set, get) => {
       else docs.set(path, parseDoc({ path, content }));
     }
 
-    set({ docs, backlinks: buildBacklinks(docs) });
+    set({
+      docs,
+      backlinks: buildBacklinks(docs),
+      problems: lintBundle(docs, get().schema),
+    });
     if (selectedChangedOnDisk) {
       if (state.dirty) {
         set({ conflict: true }); // user decides: reload or keep mine
@@ -156,6 +163,7 @@ export const useStore = create<AppState>((set, get) => {
     conflict: false,
     schema: DEFAULT_SCHEMA,
     schemaError: null,
+    problems: new Map(),
 
     openFolder: async () => {
       const root = await platform.pickFolder();
@@ -188,6 +196,7 @@ export const useStore = create<AppState>((set, get) => {
           draft: null,
           dirty: false,
           conflict: false,
+          problems: lintBundle(docs, get().schema),
         });
       } catch (err) {
         const message =
@@ -259,7 +268,13 @@ export const useStore = create<AppState>((set, get) => {
         await platform.writeDoc(root, selectedPath, draft);
         const docs = new Map(get().docs);
         docs.set(selectedPath, parseDoc({ path: selectedPath, content: draft }));
-        set({ docs, backlinks: buildBacklinks(docs), dirty: false, error: null });
+        set({
+          docs,
+          backlinks: buildBacklinks(docs),
+          problems: lintBundle(docs, get().schema),
+          dirty: false,
+          error: null,
+        });
       } catch (err) {
         const message =
           err instanceof Error
