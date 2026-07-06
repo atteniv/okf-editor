@@ -154,15 +154,12 @@ button {
   white-space: nowrap;
 }
 
-.tree-dir {
-  font-weight: 500;
-}
-
 .tree-dir .chevron {
-  font-size: 0.65rem;
+  font-size: 0.75rem;
   width: 0.7rem;
   color: var(--muted);
   flex-shrink: 0;
+  line-height: 1;
 }
 
 /* Files have no chevron — a spacer keeps their icons aligned with folders. */
@@ -171,18 +168,23 @@ button {
 }
 
 .tree-icon {
-  width: 14px;
-  height: 14px;
+  width: 13px;
+  height: 13px;
   flex-shrink: 0;
   color: var(--muted);
 }
 
-.tree-dir .tree-icon {
-  color: #d97706;
-}
-
 .tree-file.selected .tree-icon {
   color: white;
+}
+
+.tree-file-inert {
+  color: var(--muted);
+  cursor: default;
+}
+
+.tree-file-inert:hover {
+  background: none;
 }
 
 .tree-dir:hover,

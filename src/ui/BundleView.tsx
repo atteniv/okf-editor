@@ -33,6 +33,7 @@ export function BundleView() {
     schema,
     schemaError,
     problems,
+    allFiles,
     treeMode,
     setTreeMode,
     onEditBody,
@@ -41,7 +42,10 @@ export function BundleView() {
   } = useStore();
   const [showForm, setShowForm] = useState(true);
   const groups = groupByType(docs);
-  const fileTree = useMemo(() => buildFileTree(docs), [docs]);
+  const fileTree = useMemo(
+    () => buildFileTree(allFiles, docs),
+    [allFiles, docs],
+  );
   const problemDirs = useMemo(
     () => dirsContaining(problems.keys()),
     [problems],

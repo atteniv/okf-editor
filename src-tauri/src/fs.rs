@@ -42,17 +42,25 @@ pub fn resolve_in_root(root: &Path, rel: &str) -> Result<PathBuf, AppError> {
 pub struct ScanEntry {
     /// Bundle-relative path with forward slashes.
     pub path: String,
-    pub content: String,
+    /// File content for markdown files (the docs the editor indexes);
+    /// None for other files, which appear in the tree but aren't parsed.
+    pub content: Option<String>,
 }
 
-/// Walk the bundle and return every markdown file with its content.
+/// Walk the bundle and return every file — markdown with content, the rest
+/// as bare paths (the sidebar shows the whole bundle, file-manager style).
 /// Honors .gitignore and skips dot-directories (.git etc.) via the `ignore`
-/// crate's defaults.
+/// crate's defaults; `hidden(false)` keeps dotfiles like .okf-editor.json
+/// visible while the ignore rules still exclude .git.
 #[tauri::command]
 pub fn bundle_scan(root: String) -> Result<Vec<ScanEntry>, AppError> {
     let root_path = Path::new(&root).canonicalize()?;
     let mut entries = Vec::new();
-    for result in WalkBuilder::new(&root_path).build() {
+    let walker = WalkBuilder::new(&root_path)
+        .hidden(false) // show dotfiles (.okf-editor.json) …
+        .filter_entry(|e| e.file_name() != ".git") // … but never walk .git
+        .build();
+    for result in walker {
         let entry = match result {
             Ok(entry) => entry,
             Err(_) => continue, // unreadable entry: skip, don't fail the scan
@@ -60,23 +68,23 @@ pub fn bundle_scan(root: String) -> Result<Vec<ScanEntry>, AppError> {
         if !entry.file_type().is_some_and(|t| t.is_file()) {
             continue;
         }
+        let Ok(rel) = entry.path().strip_prefix(&root_path) else {
+            continue;
+        };
+        let rel = rel.to_string_lossy().replace('\\', "/");
         let is_markdown = entry
             .path()
             .extension()
             .is_some_and(|ext| ext == "md" || ext == "markdown");
-        if !is_markdown {
-            continue;
-        }
-        let Ok(rel) = entry.path().strip_prefix(&root_path) else {
-            continue;
+        let content = if is_markdown {
+            match std::fs::read_to_string(entry.path()) {
+                Ok(content) => Some(content),
+                Err(_) => continue, // non-UTF-8 or unreadable markdown: skip
+            }
+        } else {
+            None
         };
-        let Ok(content) = std::fs::read_to_string(entry.path()) else {
-            continue; // non-UTF-8 or unreadable: skip
-        };
-        entries.push(ScanEntry {
-            path: rel.to_string_lossy().replace('\\', "/"),
-            content,
-        });
+        entries.push(ScanEntry { path: rel, content });
     }
     entries.sort_by(|a, b| a.path.cmp(&b.path));
     Ok(entries)
@@ -115,12 +123,22 @@ mod tests {
     }
 
     #[test]
-    fn scan_returns_only_markdown_with_relative_paths() {
+    fn scan_returns_markdown_with_content_and_other_files_as_paths() {
         let dir = bundle();
+        std::fs::write(dir.path().join(".okf-editor.json"), "{}").unwrap();
         let entries = bundle_scan(dir.path().to_string_lossy().into_owned()).unwrap();
-        assert_eq!(entries.len(), 1);
-        assert_eq!(entries[0].path, "guides/a.md");
-        assert!(entries[0].content.contains("type: guide"));
+        let paths: Vec<&str> = entries.iter().map(|e| e.path.as_str()).collect();
+        assert_eq!(paths, vec![".okf-editor.json", "guides/a.md", "notes.txt"]);
+        assert!(entries[1]
+            .content
+            .as_deref()
+            .unwrap()
+            .contains("type: guide"));
+        assert!(
+            entries[0].content.is_none(),
+            "non-md files carry no content"
+        );
+        assert!(entries[2].content.is_none());
     }
 
     #[test]
@@ -131,7 +149,10 @@ mod tests {
         std::fs::write(dir.path().join(".gitignore"), "ignored.md\n").unwrap();
         std::fs::write(dir.path().join("ignored.md"), "x").unwrap();
         let entries = bundle_scan(dir.path().to_string_lossy().into_owned()).unwrap();
-        assert_eq!(entries.len(), 1, "only guides/a.md should survive");
+        let paths: Vec<&str> = entries.iter().map(|e| e.path.as_str()).collect();
+        assert!(!paths.iter().any(|p| p.starts_with(".git")));
+        assert!(!paths.contains(&"ignored.md"));
+        assert!(paths.contains(&"guides/a.md"));
     }
 
     #[test]

@@ -3,7 +3,16 @@ import type { DocMeta } from "./bundle";
 /**
  * Nested directory structure for the folder view of the sidebar
  * (docs/DESIGN.md §6.1 — the toggle counterpart to group-by-type).
+ * Shows every bundle file, file-manager style; only markdown files carry
+ * a doc (and are openable).
  */
+
+export interface TreeFile {
+  path: string;
+  name: string;
+  /** Present for markdown docs; undefined for other bundle files. */
+  doc: DocMeta | undefined;
+}
 
 export interface TreeDir {
   /** Directory name ("" for the bundle root). */
@@ -11,15 +20,18 @@ export interface TreeDir {
   /** Bundle-relative directory path ("" for the root). */
   path: string;
   dirs: TreeDir[];
-  files: DocMeta[];
+  files: TreeFile[];
 }
 
 /**
- * Build the directory tree from the doc index. Directories sort
- * alphabetically; files sort with `index.md` first (a directory's cover
- * page), then alphabetically by filename.
+ * Build the directory tree from all scanned paths + the doc index.
+ * Directories sort alphabetically; files sort with `index.md` first
+ * (a directory's cover page), then alphabetically by filename.
  */
-export function buildFileTree(docs: Map<string, DocMeta>): TreeDir {
+export function buildFileTree(
+  paths: string[],
+  docs: Map<string, DocMeta>,
+): TreeDir {
   const root: TreeDir = { name: "", path: "", dirs: [], files: [] };
   const dirIndex = new Map<string, TreeDir>([["", root]]);
 
@@ -41,20 +53,24 @@ export function buildFileTree(docs: Map<string, DocMeta>): TreeDir {
     return dir;
   };
 
-  for (const doc of docs.values()) {
-    const dirPath = doc.path.includes("/")
-      ? doc.path.slice(0, doc.path.lastIndexOf("/"))
+  for (const path of paths) {
+    const dirPath = path.includes("/")
+      ? path.slice(0, path.lastIndexOf("/"))
       : "";
-    ensureDir(dirPath).files.push(doc);
+    ensureDir(dirPath).files.push({
+      path,
+      name: fileName(path),
+      doc: docs.get(path),
+    });
   }
 
   for (const dir of dirIndex.values()) {
     dir.dirs.sort((a, b) => a.name.localeCompare(b.name));
     dir.files.sort((a, b) => {
-      const aIndex = fileName(a.path) === "index.md";
-      const bIndex = fileName(b.path) === "index.md";
+      const aIndex = a.name === "index.md";
+      const bIndex = b.name === "index.md";
       if (aIndex !== bIndex) return aIndex ? -1 : 1;
-      return fileName(a.path).localeCompare(fileName(b.path));
+      return a.name.localeCompare(b.name);
     });
   }
   return root;

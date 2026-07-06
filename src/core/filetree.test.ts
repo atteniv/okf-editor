@@ -9,10 +9,15 @@ const ENTRIES: ScanEntry[] = [
   { path: "policies/hr/index.md", content: "# hr\n" },
   { path: "policies/facilities/index.md", content: "# fac\n" },
   { path: "guides/onboarding.md", content: "# on\n" },
+  { path: ".okf-editor.json", content: null },
 ];
 
 describe("buildFileTree", () => {
-  const tree = buildFileTree(buildIndex(ENTRIES).docs);
+  const docs = buildIndex(ENTRIES).docs;
+  const tree = buildFileTree(
+    ENTRIES.map((e) => e.path),
+    docs,
+  );
 
   it("nests directories to arbitrary depth", () => {
     const policies = tree.dirs.find((d) => d.name === "policies")!;
@@ -23,7 +28,11 @@ describe("buildFileTree", () => {
   });
 
   it("keeps root files at the root and sorts dirs alphabetically", () => {
-    expect(tree.files.map((f) => f.path)).toEqual(["index.md"]);
+    // index.md floats first even at the root (cover-page convention).
+    expect(tree.files.map((f) => f.path)).toEqual([
+      "index.md",
+      ".okf-editor.json",
+    ]);
     expect(tree.dirs.map((d) => d.name)).toEqual(["guides", "policies"]);
   });
 
@@ -33,6 +42,13 @@ describe("buildFileTree", () => {
       "policies/index.md",
       "policies/remote-work.md",
     ]);
+  });
+
+  it("non-markdown files appear without a doc; markdown files carry theirs", () => {
+    const config = tree.files.find((f) => f.path === ".okf-editor.json")!;
+    expect(config.doc).toBeUndefined();
+    const rootIndex = tree.files.find((f) => f.path === "index.md")!;
+    expect(rootIndex.doc?.title).toBe("root");
   });
 });
 
