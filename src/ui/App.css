@@ -982,6 +982,53 @@ button {
   margin-left: 0.4rem;
 }
 
+.model-picker {
+  position: relative;
+}
+
+.model-list {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  z-index: 12;
+  list-style: none;
+  margin: 0.15rem 0 0;
+  padding: 0.25rem;
+  max-height: 16rem;
+  overflow-y: auto;
+  background: Canvas;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.18);
+}
+
+.model-list button {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.1rem;
+  width: 100%;
+  text-align: left;
+  padding: 0.35rem 0.55rem;
+  border-radius: 4px;
+}
+
+.model-list button:hover,
+.model-list button.selected {
+  background: var(--border);
+}
+
+.model-id {
+  font-size: 0.85rem;
+  font-family: ui-monospace, monospace;
+}
+
+.model-name {
+  font-size: 0.72rem;
+  color: var(--muted);
+}
+
 .dialog textarea {
   font: inherit;
   font-size: 0.9rem;

@@ -1,6 +1,91 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { tauriPlatform as platform } from "../platform";
 import { loadModel, OPENROUTER_KEY_NAME, saveModel } from "./aiClient";
+
+const MAX_VISIBLE = 20;
+
+/** Familiar picks shown before the user types (only ones the catalog has). */
+const FEATURED_MATCHERS = [
+  "glm",
+  "claude",
+  "gpt",
+  "gemini",
+  "deepseek",
+  "llama",
+  "mistral",
+  "qwen",
+];
+
+interface ModelPickerProps {
+  models: { id: string; name: string }[];
+  value: string;
+  onChange: (value: string) => void;
+}
+
+function ModelPicker({ models, value, onChange }: ModelPickerProps) {
+  const [open, setOpen] = useState(false);
+
+  const visible = useMemo(() => {
+    const q = value.trim().toLowerCase();
+    if (q !== "") {
+      return models
+        .filter(
+          (m) =>
+            m.id.toLowerCase().includes(q) || m.name.toLowerCase().includes(q),
+        )
+        .slice(0, MAX_VISIBLE);
+    }
+    // No query: a familiar shortlist — one leading entry per known family,
+    // padded with the head of the catalog.
+    const featured: typeof models = [];
+    for (const matcher of FEATURED_MATCHERS) {
+      const hit = models.find((m) => m.id.toLowerCase().includes(matcher));
+      if (hit !== undefined && !featured.includes(hit)) featured.push(hit);
+    }
+    for (const m of models) {
+      if (featured.length >= MAX_VISIBLE) break;
+      if (!featured.includes(m)) featured.push(m);
+    }
+    return featured;
+  }, [models, value]);
+
+  return (
+    <label className="model-picker">
+      Default model
+      <input
+        value={value}
+        placeholder={models.length > 0 ? "Search models…" : "e.g. z-ai/glm-5.2"}
+        onChange={(e) => {
+          onChange(e.target.value);
+          setOpen(true);
+        }}
+        onFocus={() => setOpen(true)}
+        onBlur={() => setTimeout(() => setOpen(false), 150)}
+      />
+      {open && visible.length > 0 && (
+        <ul className="model-list">
+          {visible.map((m) => (
+            <li key={m.id}>
+              <button
+                type="button"
+                className={m.id === value ? "selected" : ""}
+                // mousedown beats the input's blur-close
+                onMouseDown={(e) => {
+                  e.preventDefault();
+                  onChange(m.id);
+                  setOpen(false);
+                }}
+              >
+                <span className="model-id">{m.id}</span>
+                {m.name !== m.id && <span className="model-name">{m.name}</span>}
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+    </label>
+  );
+}
 
 interface AiSettingsProps {
   onClose: () => void;
@@ -70,25 +155,14 @@ export function AiSettings({ onClose, onChanged }: AiSettingsProps) {
           )}
         </div>
 
-        <label>
-          Default model
-          <input
-            list="ai-models"
-            value={model}
-            placeholder="e.g. z-ai/glm-5.2"
-            onChange={(e) => {
-              setModel(e.target.value);
-              saveModel(e.target.value);
-            }}
-          />
-          <datalist id="ai-models">
-            {models.map((m) => (
-              <option key={m.id} value={m.id}>
-                {m.name}
-              </option>
-            ))}
-          </datalist>
-        </label>
+        <ModelPicker
+          models={models}
+          value={model}
+          onChange={(value) => {
+            setModel(value);
+            saveModel(value);
+          }}
+        />
 
         {status !== null && <p className="dialog-hint">{status}</p>}
 
