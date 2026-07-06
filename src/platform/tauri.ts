@@ -68,4 +68,12 @@ export const tauriPlatform: Platform = {
     invoke<void>("git_create_branch", { root, name }),
 
   gitClone: (url, dest) => invoke<void>("git_clone", { url, dest }),
+
+  githubVerify: () =>
+    invoke<{ login: string; name: string | null }>("github_verify"),
+
+  githubListRepos: () =>
+    invoke<{ full_name: string; clone_url: string; private: boolean }[]>(
+      "github_list_repos",
+    ),
 };

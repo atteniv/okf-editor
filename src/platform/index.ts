@@ -56,6 +56,12 @@ export interface Platform {
   gitPush(root: string, branch?: string): Promise<void>;
   gitCreateBranch(root: string, name: string): Promise<void>;
   gitClone(url: string, dest: string): Promise<void>;
+
+  // --- GitHub REST (token from keychain; webview never sees it) ---
+  githubVerify(): Promise<{ login: string; name: string | null }>;
+  githubListRepos(): Promise<
+    { full_name: string; clone_url: string; private: boolean }[]
+  >;
 }
 
 export interface GitFileChange {

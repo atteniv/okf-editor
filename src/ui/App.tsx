@@ -1,7 +1,7 @@
 import { useEffect } from "react";
 import "./App.css";
 import { tauriPlatform as platform } from "../platform";
-import { AiSettings } from "./AiSettings";
+import { SettingsDialog } from "./SettingsDialog";
 import { BundleView } from "./BundleView";
 import { StartScreen } from "./StartScreen";
 import { useStore } from "./store";
@@ -28,7 +28,7 @@ function App() {
     <>
       {view === "bundle" ? <BundleView /> : <StartScreen />}
       {settingsOpen && (
-        <AiSettings
+        <SettingsDialog
           onClose={() => setSettingsOpen(false)}
           onChanged={() => void refreshAiStatus()}
         />

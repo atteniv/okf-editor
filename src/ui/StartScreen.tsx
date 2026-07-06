@@ -1,16 +1,25 @@
+import { useState } from "react";
+import { CloneDialog } from "./CloneDialog";
 import { useStore } from "./store";
 
 export function StartScreen() {
   const { openFolder, openBundle, recents, error } = useStore();
+  const [cloning, setCloning] = useState(false);
 
   return (
     <main className="start-screen">
       <h1>OKF Editor</h1>
       <p>A local-first, schema-aware editor for Open Knowledge Format bundles.</p>
 
-      <button className="primary" onClick={() => void openFolder()}>
-        Open bundle folder…
-      </button>
+      <div className="start-actions">
+        <button className="primary" onClick={() => void openFolder()}>
+          Open bundle folder…
+        </button>
+        <button className="secondary" onClick={() => setCloning(true)}>
+          Clone repository…
+        </button>
+      </div>
+      {cloning && <CloneDialog onClose={() => setCloning(false)} />}
 
       {error && <p className="error">{error}</p>}
 
