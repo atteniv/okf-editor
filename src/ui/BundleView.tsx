@@ -17,6 +17,7 @@ import { PublishDialog } from "./PublishDialog";
 import { FrontmatterForm } from "./FrontmatterForm";
 import { QuickOpen } from "./QuickOpen";
 import { useStore, type ViewMode } from "./store";
+import { useVerticalResize } from "./useVerticalResize";
 
 const UNTYPED_LABEL = "(no type)";
 const MODES: { key: ViewMode; label: string }[] = [
@@ -69,32 +70,6 @@ export function BundleView() {
       localStorage.setItem("okf-editor.sidebar-collapsed", collapsed ? "0" : "1");
       return !collapsed;
     });
-
-  const [bottomHeight, setBottomHeight] = useState(() => {
-    const saved = Number(localStorage.getItem("okf-editor.sidebar-bottom-height"));
-    return Number.isFinite(saved) && saved >= 120 ? saved : 300;
-  });
-
-  const startBottomResize = (e: React.MouseEvent) => {
-    e.preventDefault();
-    const startY = e.clientY;
-    const startHeight = bottomHeight;
-    const clamp = (h: number) =>
-      Math.min(Math.round(window.innerHeight * 0.75), Math.max(120, h));
-    document.body.classList.add("resizing-v");
-    const onMove = (move: MouseEvent) => {
-      setBottomHeight(clamp(startHeight - (move.clientY - startY)));
-    };
-    const onUp = (up: MouseEvent) => {
-      const height = clamp(startHeight - (up.clientY - startY));
-      localStorage.setItem("okf-editor.sidebar-bottom-height", String(height));
-      document.body.classList.remove("resizing-v");
-      window.removeEventListener("mousemove", onMove);
-      window.removeEventListener("mouseup", onUp);
-    };
-    window.addEventListener("mousemove", onMove);
-    window.addEventListener("mouseup", onUp);
-  };
 
   const startSidebarResize = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -365,22 +340,15 @@ export function BundleView() {
           )}
         </nav>
 
-        <div
-          className="sidebar-bottom-resizer"
-          onMouseDown={startBottomResize}
-          title="Drag to resize"
+        <GitPanel
+          onSelect={(path) => void selectDoc(path)}
+          onPublish={() => setPublishing(true)}
         />
-        <div className="sidebar-bottom" style={{ height: bottomHeight }}>
-          <GitPanel
-            onSelect={(path) => void selectDoc(path)}
-            onPublish={() => setPublishing(true)}
-          />
-          <ProblemsPanel
-            problems={problems}
-            onJump={jumpToProblem}
-            onFix={applyQuickFix}
-          />
-        </div>
+        <ProblemsPanel
+          problems={problems}
+          onJump={jumpToProblem}
+          onFix={applyQuickFix}
+        />
         <div
           className="sidebar-resizer"
           onMouseDown={startSidebarResize}
@@ -563,17 +531,28 @@ function ProblemsPanel({
   onFix: (fix: QuickFix) => void;
 }) {
   const [open, setOpen] = useState(false);
+  const { height, startResize } = useVerticalResize(
+    "okf-editor.problems-height",
+    240,
+  );
   const total = [...problems.values()].reduce((n, d) => n + d.length, 0);
   if (total === 0) return null;
 
   return (
     <section className="problems">
+      {open && (
+        <div
+          className="section-resizer"
+          onMouseDown={startResize}
+          title="Drag to resize"
+        />
+      )}
       <button className="problems-header" onClick={() => setOpen(!open)}>
         Problems <span className="count">{total}</span>
         <span className="chevron">{open ? "▾" : "▸"}</span>
       </button>
       {open && (
-        <ul className="problems-list">
+        <ul className="problems-list" style={{ height }}>
           {[...problems.entries()].map(([path, diagnostics]) => (
             <li key={path}>
               <span className="problem-path">{path}</span>

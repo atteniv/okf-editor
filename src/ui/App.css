@@ -237,37 +237,16 @@ body.resizing-v {
   user-select: none;
 }
 
-.sidebar-bottom-resizer {
+/* Per-section drag bars: git and problems size independently. */
+.section-resizer {
   flex-shrink: 0;
   height: 5px;
   cursor: row-resize;
-  border-top: 1px solid var(--border);
+  margin-top: -0.25rem;
 }
 
-.sidebar-bottom-resizer:hover {
+.section-resizer:hover {
   background: color-mix(in srgb, var(--accent) 35%, transparent);
-}
-
-.sidebar-bottom {
-  flex-shrink: 0;
-  overflow-y: auto;
-  display: flex;
-  flex-direction: column;
-  min-height: 0;
-}
-
-.sidebar-bottom .git-panel,
-.sidebar-bottom .problems {
-  border-top: none;
-}
-
-/* The container is user-sized now — let the lists use the space. */
-.sidebar-bottom .git-changes {
-  max-height: none;
-}
-
-.sidebar-bottom .problems-list {
-  max-height: none;
 }
 
 .sidebar-expand {
@@ -561,6 +540,13 @@ body.resizing-v {
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
+  overflow-y: auto;
+  box-sizing: border-box;
+}
+
+.git-changes {
+  flex: 1;
+  min-height: 0;
 }
 
 .git-publish {
@@ -625,7 +611,6 @@ body.resizing-v {
   list-style: none;
   margin: 0;
   padding: 0;
-  max-height: 22vh;
   overflow-y: auto;
 }
 
@@ -746,8 +731,8 @@ body.resizing-v {
   list-style: none;
   margin: 0;
   padding: 0 0.25rem 0.5rem;
-  max-height: 30vh;
   overflow-y: auto;
+  box-sizing: border-box;
   font-size: 0.8rem;
 }
 

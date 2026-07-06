@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useStore } from "./store";
+import { useVerticalResize } from "./useVerticalResize";
 
 interface GitPanelProps {
   onSelect: (path: string) => void;
@@ -34,6 +35,7 @@ export function GitPanel({ onSelect, onPublish }: GitPanelProps) {
     refreshGit,
   } = useStore();
   const [open, setOpen] = useState(true);
+  const { height, startResize } = useVerticalResize("okf-editor.git-height", 260);
   const [messageText, setMessageText] = useState("");
   const [signoff, setSignoff] = useState(
     () => localStorage.getItem("okf-editor.git-signoff") === "1",
@@ -53,6 +55,13 @@ export function GitPanel({ onSelect, onPublish }: GitPanelProps) {
 
   return (
     <section className="git-panel">
+      {open && (
+        <div
+          className="section-resizer"
+          onMouseDown={startResize}
+          title="Drag to resize"
+        />
+      )}
       <button className="problems-header" onClick={() => setOpen(!open)}>
         <BranchIcon />
         <span className="git-branch">{git.branch || "(no branch)"}</span>
@@ -63,7 +72,7 @@ export function GitPanel({ onSelect, onPublish }: GitPanelProps) {
       </button>
 
       {open && (
-        <div className="git-body">
+        <div className="git-body" style={{ height }}>
           {gitRemote === null ? (
             <button className="git-publish primary" onClick={onPublish}>
               Publish to GitHub…
