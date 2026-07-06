@@ -17,6 +17,10 @@ pub enum ErrorCode {
     Network,
     /// A required credential/setting is missing (e.g. no API key yet).
     NotConfigured,
+    /// Merge/pull conflict — never auto-resolved (DESIGN §7.3).
+    Conflict,
+    /// Remote rejected our credentials; the UI offers re-auth.
+    AuthFailed,
 }
 
 impl AppError {

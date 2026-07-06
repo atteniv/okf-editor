@@ -3,7 +3,7 @@ import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import { open } from "@tauri-apps/plugin-dialog";
 import type { ScanEntry } from "../core/bundle";
-import type { AiStreamEvent, Platform } from "./index";
+import type { AiStreamEvent, GitStatus, Platform } from "./index";
 
 export const tauriPlatform: Platform = {
   appVersion: () => getVersion(),
@@ -52,4 +52,20 @@ export const tauriPlatform: Platform = {
     listen<AiStreamEvent>("okf://ai-stream", (event) => handler(event.payload)),
 
   onOpenSettings: (handler) => listen("okf://open-settings", () => handler()),
+
+  gitDetect: () => invoke<{ version: string } | null>("git_detect"),
+
+  gitStatus: (root) => invoke<GitStatus>("git_status", { root }),
+
+  gitCommit: (root, message, signoff) =>
+    invoke<void>("git_commit", { root, message, signoff }),
+
+  gitPull: (root) => invoke<void>("git_pull", { root }),
+
+  gitPush: (root, branch) => invoke<void>("git_push", { root, branch }),
+
+  gitCreateBranch: (root, name) =>
+    invoke<void>("git_create_branch", { root, name }),
+
+  gitClone: (url, dest) => invoke<void>("git_clone", { url, dest }),
 };
