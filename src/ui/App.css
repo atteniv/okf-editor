@@ -135,15 +135,18 @@ button {
   padding: 0;
 }
 
+/* Each nesting level: clear indent + a guide line so depth is unmistakable. */
 .file-tree ul {
-  padding-left: 0.9rem;
+  margin-left: 1.05rem;
+  padding-left: 0.35rem;
+  border-left: 1px solid var(--border);
 }
 
 .tree-dir,
 .tree-file {
   display: flex;
   align-items: center;
-  gap: 0.3rem;
+  gap: 0.35rem;
   width: 100%;
   text-align: left;
   padding: 0.22rem 0.4rem;
@@ -152,13 +155,34 @@ button {
 }
 
 .tree-dir {
-  color: var(--muted);
   font-weight: 500;
 }
 
 .tree-dir .chevron {
-  font-size: 0.7rem;
-  width: 0.8rem;
+  font-size: 0.65rem;
+  width: 0.7rem;
+  color: var(--muted);
+  flex-shrink: 0;
+}
+
+/* Files have no chevron — a spacer keeps their icons aligned with folders. */
+.tree-file {
+  padding-left: calc(0.4rem + 0.7rem + 0.35rem);
+}
+
+.tree-icon {
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
+  color: var(--muted);
+}
+
+.tree-dir .tree-icon {
+  color: #d97706;
+}
+
+.tree-file.selected .tree-icon {
+  color: white;
 }
 
 .tree-dir:hover,

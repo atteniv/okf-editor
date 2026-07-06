@@ -98,6 +98,7 @@ export function BundleView() {
           {treeMode === "folder" ? (
             <FileTree
               tree={fileTree}
+              rootName={root?.split("/").at(-1) ?? "bundle"}
               selectedPath={selectedPath}
               problems={problems}
               problemDirs={problemDirs}
