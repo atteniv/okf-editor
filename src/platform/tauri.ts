@@ -48,6 +48,11 @@ export const tauriPlatform: Platform = {
 
   aiKeyStatus: () => invoke<boolean>("ai_key_status"),
 
+  aiVerify: () =>
+    invoke<{ label: string | null; usage: number | null; limit: number | null }>(
+      "ai_verify",
+    ),
+
   onAiStream: (handler) =>
     listen<AiStreamEvent>("okf://ai-stream", (event) => handler(event.payload)),
 
@@ -68,4 +73,14 @@ export const tauriPlatform: Platform = {
     invoke<void>("git_create_branch", { root, name }),
 
   gitClone: (url, dest) => invoke<void>("git_clone", { url, dest }),
+
+  gitInit: (dest) => invoke<void>("git_init", { dest }),
+
+  githubVerify: () =>
+    invoke<{ login: string; name: string | null }>("github_verify"),
+
+  githubListRepos: () =>
+    invoke<{ full_name: string; clone_url: string; private: boolean }[]>(
+      "github_list_repos",
+    ),
 };

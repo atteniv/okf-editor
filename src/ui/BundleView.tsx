@@ -3,7 +3,7 @@ import { generateDocMessages } from "../core/ai";
 import { groupByType, parseDoc } from "../core/bundle";
 import { buildFileTree, dirsContaining } from "../core/filetree";
 import { splitFrontmatter } from "../core/frontmatter";
-import { lintDoc, type Diagnostic } from "../core/lint";
+import { lintDoc, type Diagnostic, type QuickFix } from "../core/lint";
 import { relativize } from "../core/links";
 import { renderMarkdown } from "../core/markdown";
 import { loadModel, streamChat } from "./aiClient";
@@ -54,9 +54,48 @@ export function BundleView() {
   const [fileOp, setFileOp] = useState<FileOp | null>(null);
   const [quickOpen, setQuickOpen] = useState(false);
   const [showChat, setShowChat] = useState(false);
+  const [sidebarWidth, setSidebarWidth] = useState(() => {
+    const saved = Number(localStorage.getItem("okf-editor.sidebar-width"));
+    return Number.isFinite(saved) && saved >= 180 ? saved : 260;
+  });
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(
+    () => localStorage.getItem("okf-editor.sidebar-collapsed") === "1",
+  );
+
+  const toggleSidebar = () =>
+    setSidebarCollapsed((collapsed) => {
+      localStorage.setItem("okf-editor.sidebar-collapsed", collapsed ? "0" : "1");
+      return !collapsed;
+    });
+
+  const startSidebarResize = (e: React.MouseEvent) => {
+    e.preventDefault();
+    const startX = e.clientX;
+    const startWidth = sidebarWidth;
+    document.body.classList.add("resizing");
+    const onMove = (move: MouseEvent) => {
+      const width = Math.min(520, Math.max(180, startWidth + move.clientX - startX));
+      setSidebarWidth(width);
+    };
+    const onUp = (up: MouseEvent) => {
+      const width = Math.min(520, Math.max(180, startWidth + up.clientX - startX));
+      localStorage.setItem("okf-editor.sidebar-width", String(width));
+      document.body.classList.remove("resizing");
+      window.removeEventListener("mousemove", onMove);
+      window.removeEventListener("mouseup", onUp);
+    };
+    window.addEventListener("mousemove", onMove);
+    window.addEventListener("mouseup", onUp);
+  };
   const [aiBusy, setAiBusy] = useState(false);
   const [aiError, setAiError] = useState<string | null>(null);
   const editorInsertRef = useRef<((text: string) => void) | null>(null);
+  const editorNavRef = useRef<((from: number, to: number) => void) | null>(null);
+  const [pendingNav, setPendingNav] = useState<{
+    path: string;
+    from: number;
+    to: number;
+  } | null>(null);
   const aiReady = useStore((s) => s.aiReady);
   const setSettingsOpen = useStore((s) => s.setSettingsOpen);
 
@@ -81,6 +120,9 @@ export function BundleView() {
       } else if (key === "p") {
         e.preventDefault();
         setQuickOpen(true);
+      } else if (key === "b") {
+        e.preventDefault();
+        toggleSidebar();
       }
     };
     window.addEventListener("keydown", onKeyDown);
@@ -123,6 +165,45 @@ export function BundleView() {
       .sort();
   }, [docs, selectedPath]);
 
+  // Flush a problems-panel jump once the target doc's editor is mounted.
+  useEffect(() => {
+    if (
+      pendingNav !== null &&
+      pendingNav.path === selectedPath &&
+      editorNavRef.current !== null
+    ) {
+      editorNavRef.current(pendingNav.from, pendingNav.to);
+      setPendingNav(null);
+    }
+  }, [pendingNav, selectedPath, draft]);
+
+  /** Jump to a diagnostic: open its doc, then scroll to the range. */
+  const jumpToProblem = (path: string, diagnostic: Diagnostic) => {
+    void selectDoc(path);
+    if (diagnostic.where === "body" && diagnostic.from !== undefined) {
+      setPendingNav({ path, from: diagnostic.from, to: diagnostic.to ?? diagnostic.from });
+    }
+  };
+
+  /** Apply a lint quick fix (create-doc keeps you where you are). */
+  const applyQuickFix = (fix: QuickFix) => {
+    if (fix.kind === "create-doc") {
+      const dirPath = fix.targetPath.includes("/")
+        ? fix.targetPath.slice(0, fix.targetPath.lastIndexOf("/"))
+        : "";
+      const filename = fix.targetPath.slice(fix.targetPath.lastIndexOf("/") + 1);
+      const stem = filename.replace(/\.md$/, "");
+      const title = stem
+        .split("-")
+        .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+        .join(" ");
+      const type = Object.keys(schema.types).includes("guide")
+        ? "guide"
+        : (Object.keys(schema.types)[0] ?? "guide");
+      void createDoc({ dirPath, type, title, filename, select: false });
+    }
+  };
+
   /** Create + optionally stream AI-generated body into the new doc. */
   const handleCreateDoc = async (args: {
     dirPath: string;
@@ -161,8 +242,19 @@ export function BundleView() {
     );
   };
 
+  const columns = `${sidebarCollapsed ? "0px" : `${sidebarWidth}px`} 1fr${showChat ? " 340px" : ""}`;
+
   return (
-    <div className={`bundle-view ${showChat ? "with-chat" : ""}`}>
+    <div className="bundle-view" style={{ gridTemplateColumns: columns }}>
+      {sidebarCollapsed && (
+        <button
+          className="sidebar-expand"
+          onClick={toggleSidebar}
+          title="Show sidebar (⌘B)"
+        >
+          »
+        </button>
+      )}
       <aside className="sidebar">
         <header>
           <button onClick={() => void closeBundle()} title="Back to start">
@@ -172,6 +264,9 @@ export function BundleView() {
             {root?.split("/").at(-1)}
           </span>
           <div className="tree-toggle">
+            <button onClick={toggleSidebar} title="Hide sidebar (⌘B)">
+              «
+            </button>
             <button
               className={treeMode === "folder" ? "selected" : ""}
               onClick={() => setTreeMode("folder")}
@@ -232,7 +327,14 @@ export function BundleView() {
 
         <ProblemsPanel
           problems={problems}
-          onOpen={(path) => void selectDoc(path)}
+          onJump={jumpToProblem}
+          onFix={applyQuickFix}
+        />
+        <div
+          className="sidebar-resizer"
+          onMouseDown={startSidebarResize}
+          onDoubleClick={toggleSidebar}
+          title="Drag to resize · double-click or ⌘B to collapse"
         />
       </aside>
 
@@ -347,6 +449,10 @@ export function BundleView() {
                   registerInsert={(insert) => {
                     editorInsertRef.current = insert;
                   }}
+                  registerNavigate={(navigate) => {
+                    editorNavRef.current = navigate;
+                  }}
+                  onQuickFix={applyQuickFix}
                 />
               )}
               {viewMode !== "edit" && <Preview source={draft} />}
@@ -397,10 +503,12 @@ export function BundleView() {
 
 function ProblemsPanel({
   problems,
-  onOpen,
+  onJump,
+  onFix,
 }: {
   problems: Map<string, Diagnostic[]>;
-  onOpen: (path: string) => void;
+  onJump: (path: string, diagnostic: Diagnostic) => void;
+  onFix: (fix: QuickFix) => void;
 }) {
   const [open, setOpen] = useState(false);
   const total = [...problems.values()].reduce((n, d) => n + d.length, 0);
@@ -416,16 +524,29 @@ function ProblemsPanel({
         <ul className="problems-list">
           {[...problems.entries()].map(([path, diagnostics]) => (
             <li key={path}>
-              <button onClick={() => onOpen(path)} title={path}>
-                <span className="problem-path">{path}</span>
-                <ul>
-                  {diagnostics.map((d, i) => (
-                    <li key={i} className={d.severity}>
+              <span className="problem-path">{path}</span>
+              <ul>
+                {diagnostics.map((d, i) => (
+                  <li key={i} className={`problem-row ${d.severity}`}>
+                    <button
+                      className="problem-jump"
+                      title="Jump to problem"
+                      onClick={() => onJump(path, d)}
+                    >
                       {d.message}
-                    </li>
-                  ))}
-                </ul>
-              </button>
+                    </button>
+                    {d.fix !== undefined && (
+                      <button
+                        className="problem-fix"
+                        title="Create the missing document"
+                        onClick={() => onFix(d.fix!)}
+                      >
+                        Create
+                      </button>
+                    )}
+                  </li>
+                ))}
+              </ul>
             </li>
           ))}
         </ul>

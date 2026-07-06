@@ -242,6 +242,15 @@ pub fn git_create_branch(root: String, name: String) -> Result<(), AppError> {
     Ok(())
 }
 
+/// Initialize a fresh repo (creates the directory), default branch `main`.
+#[tauri::command]
+pub fn git_init(dest: String) -> Result<(), AppError> {
+    let mut cmd = git_base(None);
+    cmd.args(["init", "-b", "main", "--", &dest]);
+    run(cmd, "init")?;
+    Ok(())
+}
+
 #[tauri::command]
 pub fn git_clone(url: String, dest: String) -> Result<(), AppError> {
     let mut cmd = git_base(None);

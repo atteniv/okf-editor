@@ -197,6 +197,51 @@ pub fn ai_key_status() -> Result<bool, AppError> {
     Ok(secrets::get(KEY_NAME)?.is_some())
 }
 
+#[derive(Serialize)]
+pub struct AiKeyInfo {
+    pub label: Option<String>,
+    pub usage: Option<f64>,
+    pub limit: Option<f64>,
+}
+
+/// Verify the stored key against OpenRouter (GET /key) so a bad paste is
+/// caught at save time, not on the first real request.
+#[tauri::command]
+pub async fn ai_verify() -> Result<AiKeyInfo, AppError> {
+    let Some(key) = secrets::get(KEY_NAME)? else {
+        return Err(AppError {
+            code: ErrorCode::NotConfigured,
+            message: "OpenRouter API key is not configured".into(),
+        });
+    };
+    let response = reqwest::Client::new()
+        .get(format!("{API}/key"))
+        .bearer_auth(&key)
+        .send()
+        .await
+        .map_err(net_err)?;
+    if response.status() == 401 || response.status() == 403 {
+        return Err(AppError {
+            code: ErrorCode::AuthFailed,
+            message: "OpenRouter does not recognize this key — re-copy it from openrouter.ai/keys"
+                .into(),
+        });
+    }
+    if !response.status().is_success() {
+        return Err(AppError {
+            code: ErrorCode::Network,
+            message: format!("OpenRouter returned {}", response.status()),
+        });
+    }
+    let value: serde_json::Value = response.json().await.map_err(net_err)?;
+    let data = &value["data"];
+    Ok(AiKeyInfo {
+        label: data["label"].as_str().map(str::to_string),
+        usage: data["usage"].as_f64(),
+        limit: data["limit"].as_f64(),
+    })
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

@@ -42,6 +42,12 @@ export interface Platform {
   aiCancel(requestId: string): Promise<void>;
   aiModels(): Promise<{ id: string; name: string }[]>;
   aiKeyStatus(): Promise<boolean>;
+  /** Verifies the stored key against OpenRouter. */
+  aiVerify(): Promise<{
+    label: string | null;
+    usage: number | null;
+    limit: number | null;
+  }>;
   onAiStream(
     handler: (event: AiStreamEvent) => void,
   ): Promise<() => void>;
@@ -56,6 +62,14 @@ export interface Platform {
   gitPush(root: string, branch?: string): Promise<void>;
   gitCreateBranch(root: string, name: string): Promise<void>;
   gitClone(url: string, dest: string): Promise<void>;
+  /** git init -b main (creates the directory). */
+  gitInit(dest: string): Promise<void>;
+
+  // --- GitHub REST (token from keychain; webview never sees it) ---
+  githubVerify(): Promise<{ login: string; name: string | null }>;
+  githubListRepos(): Promise<
+    { full_name: string; clone_url: string; private: boolean }[]
+  >;
 }
 
 export interface GitFileChange {

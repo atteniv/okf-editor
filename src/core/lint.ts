@@ -15,6 +15,9 @@ import { fieldsForType, type SchemaConfig } from "./schema";
 
 export type Severity = "error" | "warning";
 
+/** A machine-applicable remediation attached to a diagnostic. */
+export type QuickFix = { kind: "create-doc"; targetPath: string };
+
 export interface Diagnostic {
   rule: string;
   severity: Severity;
@@ -24,6 +27,7 @@ export interface Diagnostic {
   /** Offsets into the doc body (only for where === "body"). */
   from?: number;
   to?: number;
+  fix?: QuickFix;
 }
 
 export function lintDoc(
@@ -110,6 +114,9 @@ export function lintDoc(
         where: "body",
         from: link.from,
         to: link.to,
+        ...(link.target.endsWith(".md")
+          ? { fix: { kind: "create-doc" as const, targetPath: link.target } }
+          : {}),
       });
     }
   }
