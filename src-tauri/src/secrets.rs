@@ -108,7 +108,10 @@ pub fn secret_exists(name: String) -> Result<bool, AppError> {
 mod tests {
     use super::*;
 
+    // Opt-in (cargo test -- --ignored): touches the real Keychain, which
+    // can pop an interactive ACL prompt on dev machines.
     #[test]
+    #[ignore]
     fn set_get_delete_round_trip() {
         let name = "openrouter-api-key";
         // Preserve any real value the developer has stored.
