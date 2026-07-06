@@ -8,6 +8,9 @@ export interface OutLink {
   target: string;
   /** The raw link destination as written in the source. */
   raw: string;
+  /** Offsets of the destination text within the doc body. */
+  from: number;
+  to: number;
 }
 
 // [text](dest) and ![alt](dest), with an optional "title".
@@ -27,7 +30,10 @@ export function extractLinks(docPath: string, body: string): OutLink[] {
     const withoutAnchor = raw.split("#")[0];
     if (withoutAnchor === "") continue;
     const target = resolveRelative(docPath, decodeURI(withoutAnchor));
-    if (target !== null) links.push({ target, raw });
+    if (target !== null) {
+      const from = match.index + match[0].indexOf("(") + 1;
+      links.push({ target, raw, from, to: from + raw.length });
+    }
   }
   return links;
 }
@@ -51,4 +57,23 @@ export function resolveRelative(fromPath: string, dest: string): string | null {
     }
   }
   return parts.join("/");
+}
+
+/**
+ * The relative path from `fromPath`'s directory to `targetPath` — what link
+ * autocomplete inserts.
+ */
+export function relativize(fromPath: string, targetPath: string): string {
+  const fromDir = fromPath.split("/").slice(0, -1);
+  const target = targetPath.split("/");
+  let common = 0;
+  while (
+    common < fromDir.length &&
+    common < target.length - 1 &&
+    fromDir[common] === target[common]
+  ) {
+    common++;
+  }
+  const ups = fromDir.length - common;
+  return [...Array<string>(ups).fill(".."), ...target.slice(common)].join("/");
 }

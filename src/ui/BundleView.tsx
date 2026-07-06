@@ -1,6 +1,8 @@
 import { useMemo, useState } from "react";
-import { groupByType } from "../core/bundle";
+import { groupByType, parseDoc } from "../core/bundle";
 import { splitFrontmatter } from "../core/frontmatter";
+import { lintDoc, type Diagnostic } from "../core/lint";
+import { relativize } from "../core/links";
 import { renderMarkdown } from "../core/markdown";
 import { Editor } from "./Editor";
 import { FrontmatterForm } from "./FrontmatterForm";
@@ -28,6 +30,7 @@ export function BundleView() {
     error,
     schema,
     schemaError,
+    problems,
     onEditBody,
     onEditFrontmatter,
     resolveConflict,
@@ -36,6 +39,24 @@ export function BundleView() {
   const groups = groupByType(docs);
   const selected = selectedPath !== null ? docs.get(selectedPath) : undefined;
   const split = draft !== null ? splitFrontmatter(draft) : null;
+
+  // Live lint of the current draft (unsaved edits included).
+  const draftDiagnostics = useMemo<Diagnostic[]>(() => {
+    if (draft === null || selectedPath === null) return [];
+    return lintDoc(parseDoc({ path: selectedPath, content: draft }), docs, schema);
+  }, [draft, selectedPath, docs, schema]);
+  const frontmatterDiagnostics = draftDiagnostics.filter(
+    (d) => d.where === "frontmatter",
+  );
+
+  // Autocomplete candidates, relative to the open doc.
+  const linkTargets = useMemo(() => {
+    if (selectedPath === null) return [];
+    return [...docs.keys()]
+      .filter((path) => path !== selectedPath)
+      .map((path) => relativize(selectedPath, path))
+      .sort();
+  }, [docs, selectedPath]);
 
   return (
     <div className="bundle-view">
@@ -63,6 +84,9 @@ export function BundleView() {
                       title={doc.path}
                     >
                       {doc.title}
+                      {problems.has(doc.path) && (
+                        <span className="problem-dot" title="Has lint findings" />
+                      )}
                     </button>
                   </li>
                 ))}
@@ -70,6 +94,11 @@ export function BundleView() {
             </section>
           ))}
         </nav>
+
+        <ProblemsPanel
+          problems={problems}
+          onOpen={(path) => void selectDoc(path)}
+        />
       </aside>
 
       <section className="doc-pane">
@@ -126,6 +155,15 @@ export function BundleView() {
                 onChange={onEditFrontmatter}
               />
             )}
+            {frontmatterDiagnostics.length > 0 && (
+              <ul className="fm-diagnostics">
+                {frontmatterDiagnostics.map((d, i) => (
+                  <li key={i} className={d.severity}>
+                    {d.message} <span className="rule">{d.rule}</span>
+                  </li>
+                ))}
+              </ul>
+            )}
 
             <div className={`work-area ${viewMode}`}>
               {viewMode !== "preview" && (
@@ -133,6 +171,8 @@ export function BundleView() {
                   docPath={selectedPath}
                   value={split.body}
                   onChange={onEditBody}
+                  diagnostics={draftDiagnostics}
+                  linkTargets={linkTargets}
                 />
               )}
               {viewMode !== "edit" && <Preview source={draft} />}
@@ -143,6 +183,45 @@ export function BundleView() {
         )}
       </section>
     </div>
+  );
+}
+
+function ProblemsPanel({
+  problems,
+  onOpen,
+}: {
+  problems: Map<string, Diagnostic[]>;
+  onOpen: (path: string) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const total = [...problems.values()].reduce((n, d) => n + d.length, 0);
+  if (total === 0) return null;
+
+  return (
+    <section className="problems">
+      <button className="problems-header" onClick={() => setOpen(!open)}>
+        Problems <span className="count">{total}</span>
+        <span className="chevron">{open ? "▾" : "▸"}</span>
+      </button>
+      {open && (
+        <ul className="problems-list">
+          {[...problems.entries()].map(([path, diagnostics]) => (
+            <li key={path}>
+              <button onClick={() => onOpen(path)} title={path}>
+                <span className="problem-path">{path}</span>
+                <ul>
+                  {diagnostics.map((d, i) => (
+                    <li key={i} className={d.severity}>
+                      {d.message}
+                    </li>
+                  ))}
+                </ul>
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+    </section>
   );
 }
 
