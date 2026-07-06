@@ -1,5 +1,13 @@
 import { create } from "zustand";
 import { buildBacklinks, buildIndex, parseDoc, type DocMeta } from "../core/bundle";
+import { joinFrontmatter, splitFrontmatter } from "../core/frontmatter";
+import {
+  CONFIG_FILENAME,
+  DEFAULT_SCHEMA,
+  mergeSchema,
+  parseSchemaConfig,
+  type SchemaConfig,
+} from "../core/schema";
 import { tauriPlatform as platform } from "../platform";
 
 const RECENTS_KEY = "okf-editor.recent-projects";
@@ -39,6 +47,10 @@ interface AppState {
   /** The selected doc changed on disk while dirty (DESIGN §7.2). */
   conflict: boolean;
 
+  /** Resolved schema: project .okf-editor.json over the shipped default. */
+  schema: SchemaConfig;
+  schemaError: string | null;
+
   openFolder(): Promise<void>;
   openBundle(root: string): Promise<void>;
   selectDoc(path: string): Promise<void>;
@@ -46,6 +58,10 @@ interface AppState {
   setViewMode(mode: ViewMode): void;
 
   onEdit(text: string): void;
+  /** Replace only the body, keeping the draft's frontmatter. */
+  onEditBody(text: string): void;
+  /** Replace only the frontmatter, keeping the draft's body. */
+  onEditFrontmatter(frontmatterRaw: string): void;
   saveNow(): Promise<void>;
   resolveConflict(action: "reload" | "keep-mine"): Promise<void>;
 }
@@ -64,6 +80,26 @@ function cancelAutosave() {
 }
 
 export const useStore = create<AppState>((set, get) => {
+  /** Load .okf-editor.json (if any) and resolve the schema (DESIGN §5). */
+  async function loadSchema(root: string) {
+    let source: string | null;
+    try {
+      source = await platform.readDoc(root, CONFIG_FILENAME);
+    } catch {
+      source = null; // no project config — shipped defaults
+    }
+    if (source === null) {
+      set({ schema: DEFAULT_SCHEMA, schemaError: null });
+      return;
+    }
+    const { config, error } = parseSchemaConfig(source);
+    if (error !== null) {
+      set({ schema: DEFAULT_SCHEMA, schemaError: `${CONFIG_FILENAME}: ${error}` });
+    } else {
+      set({ schema: mergeSchema(DEFAULT_SCHEMA, config), schemaError: null });
+    }
+  }
+
   /** Re-read changed paths and refresh the index (watcher callback). */
   async function handleFsChanged(event: { root: string; paths: string[] }) {
     const state = get();
@@ -72,6 +108,11 @@ export const useStore = create<AppState>((set, get) => {
     let selectedChangedOnDisk = false;
 
     for (const path of event.paths) {
+      if (path === CONFIG_FILENAME) {
+        // Project config changed: reload the schema; it is not a doc.
+        await loadSchema(event.root);
+        continue;
+      }
       let content: string | null;
       try {
         content = await platform.readDoc(event.root, path);
@@ -113,6 +154,8 @@ export const useStore = create<AppState>((set, get) => {
     draft: null,
     dirty: false,
     conflict: false,
+    schema: DEFAULT_SCHEMA,
+    schemaError: null,
 
     openFolder: async () => {
       const root = await platform.pickFolder();
@@ -129,6 +172,7 @@ export const useStore = create<AppState>((set, get) => {
           RECENTS_MAX,
         );
         saveRecents(recents);
+        await loadSchema(root);
         unlistenFs?.();
         unlistenFs = await platform.onFsChanged((event) => {
           void handleFsChanged(event);
@@ -190,6 +234,19 @@ export const useStore = create<AppState>((set, get) => {
     onEdit: (text) => {
       set({ draft: text, dirty: true });
       scheduleAutosave(() => void get().saveNow());
+    },
+
+    onEditBody: (text) => {
+      const { draft } = get();
+      const frontmatterRaw =
+        draft !== null ? splitFrontmatter(draft).frontmatterRaw : null;
+      get().onEdit(joinFrontmatter(frontmatterRaw, text));
+    },
+
+    onEditFrontmatter: (frontmatterRaw) => {
+      const { draft } = get();
+      const body = draft !== null ? splitFrontmatter(draft).body : "";
+      get().onEdit(joinFrontmatter(frontmatterRaw, body));
     },
 
     saveNow: async () => {
