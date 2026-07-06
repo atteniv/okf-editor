@@ -207,7 +207,45 @@ button {
 .sidebar {
   border-right: 1px solid var(--border);
   overflow-y: auto;
+  overflow-x: hidden;
   padding: 0.5rem;
+  position: relative;
+  min-width: 0;
+}
+
+.sidebar-resizer {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 5px;
+  height: 100%;
+  cursor: col-resize;
+  z-index: 4;
+}
+
+.sidebar-resizer:hover {
+  background: color-mix(in srgb, var(--accent) 35%, transparent);
+}
+
+body.resizing {
+  cursor: col-resize;
+  user-select: none;
+}
+
+.sidebar-expand {
+  position: fixed;
+  top: 0.6rem;
+  left: 0.6rem;
+  z-index: 5;
+  padding: 0.2rem 0.5rem;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: Canvas;
+  color: var(--muted);
+}
+
+.sidebar-expand:hover {
+  background: var(--border);
 }
 
 .sidebar header {

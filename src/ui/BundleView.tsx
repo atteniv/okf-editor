@@ -54,6 +54,39 @@ export function BundleView() {
   const [fileOp, setFileOp] = useState<FileOp | null>(null);
   const [quickOpen, setQuickOpen] = useState(false);
   const [showChat, setShowChat] = useState(false);
+  const [sidebarWidth, setSidebarWidth] = useState(() => {
+    const saved = Number(localStorage.getItem("okf-editor.sidebar-width"));
+    return Number.isFinite(saved) && saved >= 180 ? saved : 260;
+  });
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(
+    () => localStorage.getItem("okf-editor.sidebar-collapsed") === "1",
+  );
+
+  const toggleSidebar = () =>
+    setSidebarCollapsed((collapsed) => {
+      localStorage.setItem("okf-editor.sidebar-collapsed", collapsed ? "0" : "1");
+      return !collapsed;
+    });
+
+  const startSidebarResize = (e: React.MouseEvent) => {
+    e.preventDefault();
+    const startX = e.clientX;
+    const startWidth = sidebarWidth;
+    document.body.classList.add("resizing");
+    const onMove = (move: MouseEvent) => {
+      const width = Math.min(520, Math.max(180, startWidth + move.clientX - startX));
+      setSidebarWidth(width);
+    };
+    const onUp = (up: MouseEvent) => {
+      const width = Math.min(520, Math.max(180, startWidth + up.clientX - startX));
+      localStorage.setItem("okf-editor.sidebar-width", String(width));
+      document.body.classList.remove("resizing");
+      window.removeEventListener("mousemove", onMove);
+      window.removeEventListener("mouseup", onUp);
+    };
+    window.addEventListener("mousemove", onMove);
+    window.addEventListener("mouseup", onUp);
+  };
   const [aiBusy, setAiBusy] = useState(false);
   const [aiError, setAiError] = useState<string | null>(null);
   const editorInsertRef = useRef<((text: string) => void) | null>(null);
@@ -81,6 +114,9 @@ export function BundleView() {
       } else if (key === "p") {
         e.preventDefault();
         setQuickOpen(true);
+      } else if (key === "b") {
+        e.preventDefault();
+        toggleSidebar();
       }
     };
     window.addEventListener("keydown", onKeyDown);
@@ -161,8 +197,19 @@ export function BundleView() {
     );
   };
 
+  const columns = `${sidebarCollapsed ? "0px" : `${sidebarWidth}px`} 1fr${showChat ? " 340px" : ""}`;
+
   return (
-    <div className={`bundle-view ${showChat ? "with-chat" : ""}`}>
+    <div className="bundle-view" style={{ gridTemplateColumns: columns }}>
+      {sidebarCollapsed && (
+        <button
+          className="sidebar-expand"
+          onClick={toggleSidebar}
+          title="Show sidebar (⌘B)"
+        >
+          »
+        </button>
+      )}
       <aside className="sidebar">
         <header>
           <button onClick={() => void closeBundle()} title="Back to start">
@@ -172,6 +219,9 @@ export function BundleView() {
             {root?.split("/").at(-1)}
           </span>
           <div className="tree-toggle">
+            <button onClick={toggleSidebar} title="Hide sidebar (⌘B)">
+              «
+            </button>
             <button
               className={treeMode === "folder" ? "selected" : ""}
               onClick={() => setTreeMode("folder")}
@@ -233,6 +283,12 @@ export function BundleView() {
         <ProblemsPanel
           problems={problems}
           onOpen={(path) => void selectDoc(path)}
+        />
+        <div
+          className="sidebar-resizer"
+          onMouseDown={startSidebarResize}
+          onDoubleClick={toggleSidebar}
+          title="Drag to resize · double-click or ⌘B to collapse"
         />
       </aside>
 
