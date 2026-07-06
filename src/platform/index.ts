@@ -42,6 +42,12 @@ export interface Platform {
   aiCancel(requestId: string): Promise<void>;
   aiModels(): Promise<{ id: string; name: string }[]>;
   aiKeyStatus(): Promise<boolean>;
+  /** Verifies the stored key against OpenRouter. */
+  aiVerify(): Promise<{
+    label: string | null;
+    usage: number | null;
+    limit: number | null;
+  }>;
   onAiStream(
     handler: (event: AiStreamEvent) => void,
   ): Promise<() => void>;

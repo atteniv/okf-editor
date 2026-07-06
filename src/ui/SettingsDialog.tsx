@@ -160,6 +160,7 @@ function AiSection({ onChanged }: { onChanged: () => void }) {
   const [keyInput, setKeyInput] = useState("");
   const [model, setModel] = useState(loadModel());
   const [models, setModels] = useState<{ id: string; name: string }[]>([]);
+  const [keyInfo, setKeyInfo] = useState<string | null>(null);
   const [status, setStatus] = useState<string | null>(null);
   const [failure, setFailure] = useState<string | null>(null);
 
@@ -175,15 +176,31 @@ function AiSection({ onChanged }: { onChanged: () => void }) {
       );
   };
 
+  const verifyKey = () => {
+    platform
+      .aiVerify()
+      .then((info) => {
+        setKeyInfo(info.label !== null ? `key “${info.label}” valid` : "key valid");
+        setFailure(null);
+      })
+      .catch((err: unknown) => {
+        setKeyInfo(null);
+        setFailure(describe(err));
+      });
+  };
+
   useEffect(() => {
     platform
       .secretExists(OPENROUTER_KEY_NAME)
-      .then(setHasKey)
+      .then((exists) => {
+        setHasKey(exists);
+        if (exists) verifyKey();
+      })
       .catch((err: unknown) =>
         setFailure(`Keychain check failed: ${describe(err)}`),
       );
     loadModels();
-     
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const saveKey = async () => {
@@ -199,6 +216,7 @@ function AiSection({ onChanged }: { onChanged: () => void }) {
     setKeyInput("");
     setHasKey(true);
     setStatus("Key saved to your OS keychain.");
+    verifyKey();
     loadModels();
     onChanged();
   };
@@ -212,6 +230,7 @@ function AiSection({ onChanged }: { onChanged: () => void }) {
       return;
     }
     setHasKey(false);
+    setKeyInfo(null);
     setStatus("Key removed.");
     onChanged();
   };
@@ -230,7 +249,12 @@ function AiSection({ onChanged }: { onChanged: () => void }) {
       </p>
 
       <label>
-        API key {hasKey && <span className="ok">✓ configured</span>}
+        API key{" "}
+        {keyInfo !== null ? (
+          <span className="ok">✓ {keyInfo}</span>
+        ) : (
+          hasKey && <span className="ok">✓ saved</span>
+        )}
         <input
           type="password"
           value={keyInput}

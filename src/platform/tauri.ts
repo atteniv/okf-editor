@@ -48,6 +48,11 @@ export const tauriPlatform: Platform = {
 
   aiKeyStatus: () => invoke<boolean>("ai_key_status"),
 
+  aiVerify: () =>
+    invoke<{ label: string | null; usage: number | null; limit: number | null }>(
+      "ai_verify",
+    ),
+
   onAiStream: (handler) =>
     listen<AiStreamEvent>("okf://ai-stream", (event) => handler(event.payload)),
 

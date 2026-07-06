@@ -80,6 +80,7 @@ pub fn run() {
             ai::ai_cancel,
             ai::ai_models,
             ai::ai_key_status,
+            ai::ai_verify,
             git::git_detect,
             git::git_status,
             git::git_commit,
