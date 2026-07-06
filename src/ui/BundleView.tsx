@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { groupByType, parseDoc } from "../core/bundle";
 import { buildFileTree, dirsContaining } from "../core/filetree";
 import { splitFrontmatter } from "../core/frontmatter";
@@ -9,6 +9,7 @@ import { Editor } from "./Editor";
 import { FileOpDialogs, type FileOp } from "./FileOpDialogs";
 import { FileTree } from "./FileTree";
 import { FrontmatterForm } from "./FrontmatterForm";
+import { QuickOpen } from "./QuickOpen";
 import { useStore, type ViewMode } from "./store";
 
 const UNTYPED_LABEL = "(no type)";
@@ -47,6 +48,34 @@ export function BundleView() {
   } = useStore();
   const [showForm, setShowForm] = useState(true);
   const [fileOp, setFileOp] = useState<FileOp | null>(null);
+  const [quickOpen, setQuickOpen] = useState(false);
+
+  // Keyboard shortcuts: Cmd/Ctrl+S save, Cmd/Ctrl+N new doc, Cmd/Ctrl+P open.
+  const saveNow = useStore((s) => s.saveNow);
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      const mod = e.metaKey || e.ctrlKey;
+      if (!mod) return;
+      const key = e.key.toLowerCase();
+      if (key === "s") {
+        e.preventDefault();
+        void saveNow();
+      } else if (key === "n") {
+        e.preventDefault();
+        const state = useStore.getState();
+        const dir =
+          state.selectedPath !== null && state.selectedPath.includes("/")
+            ? state.selectedPath.slice(0, state.selectedPath.lastIndexOf("/"))
+            : "";
+        setFileOp({ kind: "new-doc", dirPath: dir });
+      } else if (key === "p") {
+        e.preventDefault();
+        setQuickOpen(true);
+      }
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [saveNow]);
   const groups = groupByType(docs);
   const fileTree = useMemo(
     () => buildFileTree(allFiles, docs),
@@ -163,6 +192,13 @@ export function BundleView() {
           onDelete={(path) => void deleteDoc(path)}
         />
       )}
+      {quickOpen && (
+        <QuickOpen
+          docs={docs}
+          onSelect={(path) => void selectDoc(path)}
+          onClose={() => setQuickOpen(false)}
+        />
+      )}
 
       <section className="doc-pane">
         {selected && selectedPath !== null && draft !== null && split !== null ? (
@@ -241,8 +277,24 @@ export function BundleView() {
               {viewMode !== "edit" && <Preview source={draft} />}
             </div>
           </>
+        ) : docs.size === 0 ? (
+          <div className="empty">
+            <p>This bundle has no documents yet.</p>
+            <button
+              className="primary"
+              onClick={() => setFileOp({ kind: "new-doc", dirPath: "" })}
+            >
+              Create your first document
+            </button>
+          </div>
         ) : (
-          <p className="empty">Select a document from the tree.</p>
+          <div className="empty">
+            <p>Select a document from the tree.</p>
+            <p className="hint">
+              <kbd>⌘P</kbd> quick-open · <kbd>⌘N</kbd> new document ·{" "}
+              <kbd>⌘S</kbd> save
+            </p>
+          </div>
         )}
       </section>
     </div>
