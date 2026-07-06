@@ -31,6 +31,13 @@ function saveRecents(recents: string[]) {
 }
 
 export type ViewMode = "edit" | "split" | "preview";
+export type TreeMode = "folder" | "type";
+
+const TREE_MODE_KEY = "okf-editor.tree-mode";
+
+function loadTreeMode(): TreeMode {
+  return localStorage.getItem(TREE_MODE_KEY) === "type" ? "type" : "folder";
+}
 
 interface AppState {
   view: "start" | "bundle";
@@ -42,6 +49,8 @@ interface AppState {
   error: string | null;
 
   viewMode: ViewMode;
+  /** Sidebar layout: file-manager folders (default) or grouped by type. */
+  treeMode: TreeMode;
   /** Editor text for the selected doc; authoritative while dirty. */
   draft: string | null;
   dirty: boolean;
@@ -59,6 +68,7 @@ interface AppState {
   selectDoc(path: string): Promise<void>;
   closeBundle(): Promise<void>;
   setViewMode(mode: ViewMode): void;
+  setTreeMode(mode: TreeMode): void;
 
   onEdit(text: string): void;
   /** Replace only the body, keeping the draft's frontmatter. */
@@ -158,6 +168,7 @@ export const useStore = create<AppState>((set, get) => {
     recents: loadRecents(),
     error: null,
     viewMode: "split",
+    treeMode: loadTreeMode(),
     draft: null,
     dirty: false,
     conflict: false,
@@ -239,6 +250,11 @@ export const useStore = create<AppState>((set, get) => {
     },
 
     setViewMode: (mode) => set({ viewMode: mode }),
+
+    setTreeMode: (mode) => {
+      localStorage.setItem(TREE_MODE_KEY, mode);
+      set({ treeMode: mode });
+    },
 
     onEdit: (text) => {
       set({ draft: text, dirty: true });

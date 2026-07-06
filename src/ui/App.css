@@ -103,6 +103,79 @@ button {
   font-weight: 600;
 }
 
+.tree-toggle {
+  margin-left: auto;
+  display: flex;
+  gap: 0.15rem;
+}
+
+.tree-toggle button {
+  font-size: 0.7rem;
+  font-weight: normal;
+  padding: 0.15rem 0.45rem;
+  border-radius: 4px;
+  color: var(--muted);
+}
+
+.tree-toggle button:hover {
+  background: var(--border);
+}
+
+.tree-toggle button.selected {
+  background: var(--accent);
+  color: white;
+}
+
+/* ---- Folder tree ---- */
+
+.file-tree,
+.file-tree ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.file-tree ul {
+  padding-left: 0.9rem;
+}
+
+.tree-dir,
+.tree-file {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  width: 100%;
+  text-align: left;
+  padding: 0.22rem 0.4rem;
+  border-radius: 4px;
+  white-space: nowrap;
+}
+
+.tree-dir {
+  color: var(--muted);
+  font-weight: 500;
+}
+
+.tree-dir .chevron {
+  font-size: 0.7rem;
+  width: 0.8rem;
+}
+
+.tree-dir:hover,
+.tree-file:hover {
+  background: var(--border);
+}
+
+.tree-file.selected {
+  background: var(--accent);
+  color: white;
+}
+
+.tree-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 .sidebar header button {
   padding: 0.15rem 0.4rem;
   border-radius: 4px;

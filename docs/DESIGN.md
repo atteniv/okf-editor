@@ -167,8 +167,11 @@ Schema-engine behavior worth pinning down now:
 ### 6.1 App shell
 - **Recent projects** screen on launch (list of known local bundles), plus
   Open Folder / Clone Repo / New Project entry points (New Project = Phase 2).
-- **Doc tree** groups by `type` by default, toggleable to folder view; filter
-  box matches title/path/tags.
+- **Doc tree** is a file-manager-style folder view by default (bundles nest
+  arbitrarily deep; `index.md` floats first as a directory's cover page),
+  toggleable to a group-by-`type` view; filter box matches title/path/tags.
+  Hand-rolled recursive tree — revisit a library (react-arborist) only when
+  drag-to-move lands with the rename machinery.
 - **Lint panel** lists diagnostics bundle-wide, grouped by file; click →
   jump-to-range in the editor.
 
