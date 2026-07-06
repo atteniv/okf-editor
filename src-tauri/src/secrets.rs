@@ -1,3 +1,6 @@
+use std::collections::HashMap;
+use std::sync::Mutex;
+
 use keyring::Entry;
 
 use crate::error::{AppError, ErrorCode};
@@ -8,6 +11,34 @@ use crate::error::{AppError, ErrorCode};
 /// (AI requests, git auth); the webview only learns whether one exists.
 const SERVICE: &str = "com.atteniv.okf-editor";
 const ALLOWED: &[&str] = &["openrouter-api-key", "github-token"];
+
+/// Session cache: macOS gates every keychain READ behind a signature-based
+/// ACL check (a password prompt for unsigned dev builds, whose signature
+/// changes each rebuild). Reading once per launch and serving from process
+/// memory afterwards means at most one prompt per session — the key is in
+/// process memory during requests regardless.
+static CACHE: Mutex<Option<HashMap<String, String>>> = Mutex::new(None);
+
+fn cache_get(name: &str) -> Option<String> {
+    CACHE
+        .lock()
+        .expect("secret cache lock poisoned")
+        .as_ref()
+        .and_then(|map| map.get(name).cloned())
+}
+
+fn cache_put(name: &str, value: Option<String>) {
+    let mut cache = CACHE.lock().expect("secret cache lock poisoned");
+    let map = cache.get_or_insert_with(HashMap::new);
+    match value {
+        Some(value) => {
+            map.insert(name.to_string(), value);
+        }
+        None => {
+            map.remove(name);
+        }
+    }
+}
 
 fn entry(name: &str) -> Result<Entry, AppError> {
     if !ALLOWED.contains(&name) {
@@ -23,9 +54,16 @@ fn entry(name: &str) -> Result<Entry, AppError> {
 }
 
 /// Internal read for Rust consumers only (never exposed as a command).
+/// Serves from the session cache after the first keychain read.
 pub fn get(name: &str) -> Result<Option<String>, AppError> {
+    if let Some(cached) = cache_get(name) {
+        return Ok(Some(cached));
+    }
     match entry(name)?.get_password() {
-        Ok(value) => Ok(Some(value)),
+        Ok(value) => {
+            cache_put(name, Some(value.clone()));
+            Ok(Some(value))
+        }
         Err(keyring::Error::NoEntry) => Ok(None),
         Err(e) => Err(AppError {
             code: ErrorCode::Io,
@@ -39,13 +77,18 @@ pub fn secret_set(name: String, value: String) -> Result<(), AppError> {
     entry(&name)?.set_password(&value).map_err(|e| AppError {
         code: ErrorCode::Io,
         message: format!("keychain write failed: {e}"),
-    })
+    })?;
+    cache_put(&name, Some(value));
+    Ok(())
 }
 
 #[tauri::command]
 pub fn secret_delete(name: String) -> Result<(), AppError> {
     match entry(&name)?.delete_credential() {
-        Ok(()) | Err(keyring::Error::NoEntry) => Ok(()),
+        Ok(()) | Err(keyring::Error::NoEntry) => {
+            cache_put(&name, None);
+            Ok(())
+        }
         Err(e) => Err(AppError {
             code: ErrorCode::Io,
             message: format!("keychain delete failed: {e}"),
