@@ -70,6 +70,32 @@ export function BundleView() {
       return !collapsed;
     });
 
+  const [bottomHeight, setBottomHeight] = useState(() => {
+    const saved = Number(localStorage.getItem("okf-editor.sidebar-bottom-height"));
+    return Number.isFinite(saved) && saved >= 120 ? saved : 300;
+  });
+
+  const startBottomResize = (e: React.MouseEvent) => {
+    e.preventDefault();
+    const startY = e.clientY;
+    const startHeight = bottomHeight;
+    const clamp = (h: number) =>
+      Math.min(Math.round(window.innerHeight * 0.75), Math.max(120, h));
+    document.body.classList.add("resizing-v");
+    const onMove = (move: MouseEvent) => {
+      setBottomHeight(clamp(startHeight - (move.clientY - startY)));
+    };
+    const onUp = (up: MouseEvent) => {
+      const height = clamp(startHeight - (up.clientY - startY));
+      localStorage.setItem("okf-editor.sidebar-bottom-height", String(height));
+      document.body.classList.remove("resizing-v");
+      window.removeEventListener("mousemove", onMove);
+      window.removeEventListener("mouseup", onUp);
+    };
+    window.addEventListener("mousemove", onMove);
+    window.addEventListener("mouseup", onUp);
+  };
+
   const startSidebarResize = (e: React.MouseEvent) => {
     e.preventDefault();
     const startX = e.clientX;
@@ -339,15 +365,22 @@ export function BundleView() {
           )}
         </nav>
 
-        <GitPanel
-          onSelect={(path) => void selectDoc(path)}
-          onPublish={() => setPublishing(true)}
+        <div
+          className="sidebar-bottom-resizer"
+          onMouseDown={startBottomResize}
+          title="Drag to resize"
         />
-        <ProblemsPanel
-          problems={problems}
-          onJump={jumpToProblem}
-          onFix={applyQuickFix}
-        />
+        <div className="sidebar-bottom" style={{ height: bottomHeight }}>
+          <GitPanel
+            onSelect={(path) => void selectDoc(path)}
+            onPublish={() => setPublishing(true)}
+          />
+          <ProblemsPanel
+            problems={problems}
+            onJump={jumpToProblem}
+            onFix={applyQuickFix}
+          />
+        </div>
         <div
           className="sidebar-resizer"
           onMouseDown={startSidebarResize}

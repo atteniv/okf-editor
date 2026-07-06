@@ -232,6 +232,44 @@ body.resizing {
   user-select: none;
 }
 
+body.resizing-v {
+  cursor: row-resize;
+  user-select: none;
+}
+
+.sidebar-bottom-resizer {
+  flex-shrink: 0;
+  height: 5px;
+  cursor: row-resize;
+  border-top: 1px solid var(--border);
+}
+
+.sidebar-bottom-resizer:hover {
+  background: color-mix(in srgb, var(--accent) 35%, transparent);
+}
+
+.sidebar-bottom {
+  flex-shrink: 0;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.sidebar-bottom .git-panel,
+.sidebar-bottom .problems {
+  border-top: none;
+}
+
+/* The container is user-sized now — let the lists use the space. */
+.sidebar-bottom .git-changes {
+  max-height: none;
+}
+
+.sidebar-bottom .problems-list {
+  max-height: none;
+}
+
 .sidebar-expand {
   position: fixed;
   top: 0.6rem;
