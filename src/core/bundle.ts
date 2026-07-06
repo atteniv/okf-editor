@@ -20,6 +20,8 @@ export interface DocMeta {
   tags: string[];
   frontmatterRaw: string | null;
   body: string;
+  /** The full file source — what the editor edits. */
+  source: string;
   links: OutLink[];
 }
 
@@ -38,6 +40,7 @@ export function parseDoc(entry: ScanEntry): DocMeta {
     tags: deriveTags(frontmatterRaw),
     frontmatterRaw,
     body,
+    source: entry.content,
     links: extractLinks(entry.path, body),
   };
 }
