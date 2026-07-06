@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { generateDocMessages } from "../core/ai";
 import { groupByType, parseDoc } from "../core/bundle";
 import { buildFileTree, dirsContaining } from "../core/filetree";
@@ -6,9 +6,7 @@ import { splitFrontmatter } from "../core/frontmatter";
 import { lintDoc, type Diagnostic } from "../core/lint";
 import { relativize } from "../core/links";
 import { renderMarkdown } from "../core/markdown";
-import { tauriPlatform as platform } from "../platform";
 import { loadModel, streamChat } from "./aiClient";
-import { AiSettings } from "./AiSettings";
 import { ChatPanel } from "./ChatPanel";
 import { Editor } from "./Editor";
 import { FileOpDialogs, type FileOp } from "./FileOpDialogs";
@@ -55,16 +53,11 @@ export function BundleView() {
   const [fileOp, setFileOp] = useState<FileOp | null>(null);
   const [quickOpen, setQuickOpen] = useState(false);
   const [showChat, setShowChat] = useState(false);
-  const [showAiSettings, setShowAiSettings] = useState(false);
-  const [aiReady, setAiReady] = useState(false);
   const [aiBusy, setAiBusy] = useState(false);
   const [aiError, setAiError] = useState<string | null>(null);
   const editorInsertRef = useRef<((text: string) => void) | null>(null);
-
-  const refreshAiStatus = useCallback(() => {
-    platform.aiKeyStatus().then(setAiReady).catch(() => setAiReady(false));
-  }, []);
-  useEffect(() => refreshAiStatus(), [refreshAiStatus]);
+  const aiReady = useStore((s) => s.aiReady);
+  const setSettingsOpen = useStore((s) => s.setSettingsOpen);
 
   // Keyboard shortcuts: Cmd/Ctrl+S save, Cmd/Ctrl+N new doc, Cmd/Ctrl+P open.
   const saveNow = useStore((s) => s.saveNow);
@@ -199,6 +192,12 @@ export function BundleView() {
             >
               AI
             </button>
+            <button
+              onClick={() => setSettingsOpen(true)}
+              title="Settings (⌘,)"
+            >
+              ⚙
+            </button>
           </div>
         </header>
         <nav className="doc-tree">
@@ -254,7 +253,7 @@ export function BundleView() {
           schema={schema}
           doc={draftDoc}
           aiReady={aiReady}
-          onOpenSettings={() => setShowAiSettings(true)}
+          onOpenSettings={() => setSettingsOpen(true)}
           onInsert={
             selectedPath !== null && viewMode !== "preview"
               ? (text) => editorInsertRef.current?.(text)
@@ -281,12 +280,6 @@ export function BundleView() {
           docs={docs}
           onSelect={(path) => void selectDoc(path)}
           onClose={() => setQuickOpen(false)}
-        />
-      )}
-      {showAiSettings && (
-        <AiSettings
-          onClose={() => setShowAiSettings(false)}
-          onChanged={refreshAiStatus}
         />
       )}
 
