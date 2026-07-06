@@ -1,8 +1,9 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { groupByType } from "../core/bundle";
 import { splitFrontmatter } from "../core/frontmatter";
 import { renderMarkdown } from "../core/markdown";
 import { Editor } from "./Editor";
+import { FrontmatterForm } from "./FrontmatterForm";
 import { useStore, type ViewMode } from "./store";
 
 const UNTYPED_LABEL = "(no type)";
@@ -25,11 +26,16 @@ export function BundleView() {
     dirty,
     conflict,
     error,
-    onEdit,
+    schema,
+    schemaError,
+    onEditBody,
+    onEditFrontmatter,
     resolveConflict,
   } = useStore();
+  const [showForm, setShowForm] = useState(true);
   const groups = groupByType(docs);
   const selected = selectedPath !== null ? docs.get(selectedPath) : undefined;
+  const split = draft !== null ? splitFrontmatter(draft) : null;
 
   return (
     <div className="bundle-view">
@@ -67,7 +73,7 @@ export function BundleView() {
       </aside>
 
       <section className="doc-pane">
-        {selected && selectedPath !== null && draft !== null ? (
+        {selected && selectedPath !== null && draft !== null && split !== null ? (
           <>
             <header className="doc-toolbar">
               <div className="doc-meta">
@@ -77,6 +83,13 @@ export function BundleView() {
                 </span>
               </div>
               <div className="mode-toggle">
+                <button
+                  className={showForm ? "selected" : ""}
+                  onClick={() => setShowForm(!showForm)}
+                  title="Toggle frontmatter form"
+                >
+                  Frontmatter
+                </button>
                 {MODES.map(({ key, label }) => (
                   <button
                     key={key}
@@ -103,10 +116,24 @@ export function BundleView() {
               </div>
             )}
             {error && <div className="error-banner">{error}</div>}
+            {schemaError && <div className="error-banner">{schemaError}</div>}
+
+            {showForm && (
+              <FrontmatterForm
+                frontmatterRaw={split.frontmatterRaw}
+                schema={schema}
+                docPaths={[...docs.keys()]}
+                onChange={onEditFrontmatter}
+              />
+            )}
 
             <div className={`work-area ${viewMode}`}>
               {viewMode !== "preview" && (
-                <Editor docPath={selectedPath} value={draft} onChange={onEdit} />
+                <Editor
+                  docPath={selectedPath}
+                  value={split.body}
+                  onChange={onEditBody}
+                />
               )}
               {viewMode !== "edit" && <Preview source={draft} />}
             </div>

@@ -237,6 +237,161 @@ button {
   background: var(--border);
 }
 
+/* ---- Frontmatter form ---- */
+
+.fm-form {
+  border-bottom: 1px solid var(--border);
+  padding: 0.5rem 1rem 0.75rem;
+  max-height: 40vh;
+  overflow-y: auto;
+  flex-shrink: 0;
+}
+
+.fm-form.fm-empty {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
+.fm-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 0.5rem;
+}
+
+.fm-title {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--muted);
+  flex: 1;
+}
+
+.fm-warning {
+  font-size: 0.75rem;
+  color: #f59e0b;
+}
+
+.fm-toolbar button,
+.fm-empty button {
+  font-size: 0.75rem;
+  padding: 0.15rem 0.5rem;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+}
+
+.fm-toolbar button:hover,
+.fm-empty button:hover {
+  background: var(--border);
+}
+
+.fm-toolbar button.selected {
+  background: var(--accent);
+  color: white;
+  border-color: var(--accent);
+}
+
+.fm-raw {
+  width: 100%;
+  box-sizing: border-box;
+  font-family: ui-monospace, monospace;
+  font-size: 0.85rem;
+  background: transparent;
+  color: inherit;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 0.5rem;
+}
+
+.fm-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 0.5rem 1rem;
+  align-items: start;
+}
+
+.fm-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.fm-field-wide {
+  grid-column: 1 / -1;
+}
+
+.fm-field-check {
+  flex-direction: row;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.fm-label {
+  font-size: 0.75rem;
+  color: var(--muted);
+}
+
+.fm-required {
+  color: #dc2626;
+}
+
+.fm-field input,
+.fm-field select,
+.fm-field textarea {
+  font: inherit;
+  font-size: 0.85rem;
+  color: inherit;
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 0.25rem 0.4rem;
+}
+
+.fm-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+  align-items: center;
+}
+
+.fm-tags input {
+  min-width: 8rem;
+  flex: 1;
+}
+
+.tag {
+  font-size: 0.75rem;
+  background: var(--border);
+  padding: 0.1rem 0.5rem;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.2rem;
+}
+
+.tag-remove {
+  padding: 0 0.15rem;
+  color: var(--muted);
+}
+
+.tag-remove:hover {
+  color: #dc2626;
+}
+
+.fm-unknown {
+  grid-column: 1 / -1;
+  font-size: 0.8rem;
+}
+
+.fm-unknown ul {
+  margin: 0.25rem 0 0;
+  padding-left: 1rem;
+  color: var(--muted);
+}
+
 .work-area {
   flex: 1;
   display: grid;
