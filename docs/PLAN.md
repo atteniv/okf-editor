@@ -89,7 +89,9 @@ friction as issues.
 - [ ] **Wk 2 — Auth + clone:** keychain storage; connect-GitHub flow with
       fine-grained-PAT guidance copy; token verification; clone-by-URL and
       repo-picker; token-expiry re-auth banner (401 path tested end-to-end)
-- [ ] **Wk 3 — Publish UX:** status/diff-summary view; commit (+DCO signoff
+- [ ] **Wk 3 — Publish UX:** status view — changed-file list + tree badges,
+      no diff rendering (descoped 2026-07-05: modified-indicators suffice;
+      diffs live in the user's git tools); commit (+DCO signoff
       toggle); pull-before-push with structured conflict guidance; branch + PR
       mode (opens compare URL); e2e smoke: edit → commit → push to bare repo
 

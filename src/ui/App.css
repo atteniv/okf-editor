@@ -722,9 +722,96 @@ button {
 
 .empty {
   color: var(--muted);
-  display: grid;
-  place-items: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
   height: 100%;
+}
+
+.empty .primary {
+  background: var(--accent);
+  color: white;
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+}
+
+.empty .hint {
+  font-size: 0.8rem;
+}
+
+.empty kbd {
+  font-family: inherit;
+  background: var(--border);
+  border-radius: 4px;
+  padding: 0.05rem 0.35rem;
+  font-size: 0.75rem;
+}
+
+/* ---- Quick open ---- */
+
+.quick-open {
+  background: Canvas;
+  color: CanvasText;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.25);
+  width: min(34rem, 90vw);
+  margin-top: -20vh;
+  overflow: hidden;
+}
+
+.quick-open input {
+  width: 100%;
+  box-sizing: border-box;
+  font: inherit;
+  font-size: 1rem;
+  color: CanvasText;
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid var(--border);
+  padding: 0.75rem 1rem;
+  outline: none;
+}
+
+.quick-open ul {
+  list-style: none;
+  margin: 0;
+  padding: 0.25rem;
+  max-height: 40vh;
+  overflow-y: auto;
+}
+
+.quick-open li button {
+  display: flex;
+  align-items: baseline;
+  gap: 0.6rem;
+  width: 100%;
+  text-align: left;
+  padding: 0.4rem 0.75rem;
+  border-radius: 6px;
+}
+
+.quick-open li button.active {
+  background: var(--accent);
+  color: white;
+}
+
+.qo-title {
+  font-size: 0.9rem;
+}
+
+.qo-path {
+  font-size: 0.75rem;
+  font-family: ui-monospace, monospace;
+  opacity: 0.65;
+}
+
+.qo-none {
+  padding: 0.6rem 0.9rem;
+  color: var(--muted);
+  font-size: 0.85rem;
 }
 
 /* ---- File-op dialogs ---- */
