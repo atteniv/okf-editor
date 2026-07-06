@@ -6,6 +6,7 @@ import { lintDoc, type Diagnostic } from "../core/lint";
 import { relativize } from "../core/links";
 import { renderMarkdown } from "../core/markdown";
 import { Editor } from "./Editor";
+import { FileOpDialogs, type FileOp } from "./FileOpDialogs";
 import { FileTree } from "./FileTree";
 import { FrontmatterForm } from "./FrontmatterForm";
 import { useStore, type ViewMode } from "./store";
@@ -39,8 +40,13 @@ export function BundleView() {
     onEditBody,
     onEditFrontmatter,
     resolveConflict,
+    createDoc,
+    createFolder,
+    renameDoc,
+    deleteDoc,
   } = useStore();
   const [showForm, setShowForm] = useState(true);
+  const [fileOp, setFileOp] = useState<FileOp | null>(null);
   const groups = groupByType(docs);
   const fileTree = useMemo(
     () => buildFileTree(allFiles, docs),
@@ -107,6 +113,7 @@ export function BundleView() {
               problems={problems}
               problemDirs={problemDirs}
               onSelect={(path) => void selectDoc(path)}
+              onFileOp={setFileOp}
             />
           ) : (
             [...groups.entries()].map(([type, group]) => (
@@ -144,6 +151,18 @@ export function BundleView() {
           onOpen={(path) => void selectDoc(path)}
         />
       </aside>
+
+      {fileOp !== null && (
+        <FileOpDialogs
+          op={fileOp}
+          schema={schema}
+          onClose={() => setFileOp(null)}
+          onCreateDoc={(args) => void createDoc(args)}
+          onCreateFolder={(dir, name) => void createFolder(dir, name)}
+          onRename={(from, to) => void renameDoc(from, to)}
+          onDelete={(path) => void deleteDoc(path)}
+        />
+      )}
 
       <section className="doc-pane">
         {selected && selectedPath !== null && draft !== null && split !== null ? (

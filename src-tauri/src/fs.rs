@@ -105,6 +105,33 @@ pub fn doc_write(root: String, rel_path: String, content: String) -> Result<(), 
     Ok(std::fs::write(path, content)?)
 }
 
+#[tauri::command]
+pub fn doc_rename(root: String, from: String, to: String) -> Result<(), AppError> {
+    let root_path = Path::new(&root);
+    let from_path = resolve_in_root(root_path, &from)?;
+    let to_path = resolve_in_root(root_path, &to)?;
+    if to_path.exists() {
+        return Err(AppError {
+            code: crate::error::ErrorCode::Io,
+            message: format!("destination already exists: {to}"),
+        });
+    }
+    if let Some(parent) = to_path.parent() {
+        std::fs::create_dir_all(parent)?;
+    }
+    Ok(std::fs::rename(from_path, to_path)?)
+}
+
+/// Delete to the OS trash — never a hard unlink (DESIGN §7.1).
+#[tauri::command]
+pub fn doc_delete(root: String, rel_path: String) -> Result<(), AppError> {
+    let path = resolve_in_root(Path::new(&root), &rel_path)?;
+    trash::delete(&path).map_err(|e| AppError {
+        code: crate::error::ErrorCode::Io,
+        message: format!("could not move to trash: {e}"),
+    })
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -186,6 +213,40 @@ mod tests {
         )
         .unwrap_err();
         assert_eq!(err.code, ErrorCode::PathOutsideBundle);
+    }
+
+    #[test]
+    fn rename_moves_across_directories_and_rewrites_nothing_else() {
+        let dir = bundle();
+        let root = dir.path().to_string_lossy().into_owned();
+        doc_rename(root.clone(), "guides/a.md".into(), "policies/b.md".into()).unwrap();
+        assert!(!dir.path().join("guides/a.md").exists());
+        assert!(doc_read(root, "policies/b.md".into())
+            .unwrap()
+            .contains("type: guide"));
+    }
+
+    #[test]
+    fn rename_refuses_to_clobber_an_existing_file() {
+        let dir = bundle();
+        std::fs::write(dir.path().join("guides/b.md"), "existing").unwrap();
+        let err = doc_rename(
+            dir.path().to_string_lossy().into_owned(),
+            "guides/a.md".into(),
+            "guides/b.md".into(),
+        )
+        .unwrap_err();
+        assert!(err.message.contains("already exists"));
+    }
+
+    #[test]
+    fn rename_guards_both_endpoints() {
+        let dir = bundle();
+        let root = dir.path().to_string_lossy().into_owned();
+        let err = doc_rename(root.clone(), "guides/a.md".into(), "../out.md".into());
+        assert_eq!(err.unwrap_err().code, ErrorCode::PathOutsideBundle);
+        let err = doc_rename(root, "../outside.md".into(), "guides/x.md".into());
+        assert_eq!(err.unwrap_err().code, ErrorCode::PathOutsideBundle);
     }
 
     #[cfg(unix)]

@@ -2,6 +2,8 @@ import { create } from "zustand";
 import { buildBacklinks, buildIndex, parseDoc, type DocMeta } from "../core/bundle";
 import { joinFrontmatter, splitFrontmatter } from "../core/frontmatter";
 import { lintBundle, type Diagnostic } from "../core/lint";
+import { rewriteLinksForRename } from "../core/rename";
+import { generateSkeleton, instantiateTemplate } from "../core/template";
 import {
   CONFIG_FILENAME,
   DEFAULT_SCHEMA,
@@ -28,6 +30,12 @@ function loadRecents(): string[] {
 
 function saveRecents(recents: string[]) {
   localStorage.setItem(RECENTS_KEY, JSON.stringify(recents));
+}
+
+function message(err: unknown): string {
+  if (err instanceof Error) return err.message;
+  const detail = (err as { message?: string } | null)?.message;
+  return detail ?? String(err);
 }
 
 export type ViewMode = "edit" | "split" | "preview";
@@ -71,6 +79,20 @@ interface AppState {
   closeBundle(): Promise<void>;
   setViewMode(mode: ViewMode): void;
   setTreeMode(mode: TreeMode): void;
+
+  /** Create a doc from the type's template; selects it on success. */
+  createDoc(args: {
+    dirPath: string;
+    type: string;
+    title: string;
+    filename: string;
+  }): Promise<void>;
+  /** Create a folder by creating its index.md cover page. */
+  createFolder(dirPath: string, name: string): Promise<void>;
+  /** Rename/move a doc, rewriting inbound and own links. */
+  renameDoc(oldPath: string, newPath: string): Promise<void>;
+  /** Delete to the OS trash. */
+  deleteDoc(path: string): Promise<void>;
 
   onEdit(text: string): void;
   /** Replace only the body, keeping the draft's frontmatter. */
@@ -263,6 +285,143 @@ export const useStore = create<AppState>((set, get) => {
     setTreeMode: (mode) => {
       localStorage.setItem(TREE_MODE_KEY, mode);
       set({ treeMode: mode });
+    },
+
+    createDoc: async ({ dirPath, type, title, filename }) => {
+      const { root, schema } = get();
+      if (root === null) return;
+      const path = dirPath === "" ? filename : `${dirPath}/${filename}`;
+      if (get().docs.has(path)) {
+        set({ error: `A document already exists at ${path}` });
+        return;
+      }
+      const date = new Date().toISOString().slice(0, 10);
+      let content: string;
+      const templatePath = schema.types[type]?.template;
+      if (templatePath !== undefined) {
+        try {
+          const template = await platform.readDoc(root, templatePath);
+          content = instantiateTemplate(template, { title, type, date });
+        } catch {
+          content = generateSkeleton(schema, type, title, date);
+        }
+      } else {
+        content = generateSkeleton(schema, type, title, date);
+      }
+      try {
+        await platform.writeDoc(root, path, content);
+      } catch (err) {
+        set({ error: `Could not create document: ${message(err)}` });
+        return;
+      }
+      const docs = new Map(get().docs);
+      docs.set(path, parseDoc({ path, content }));
+      const files = new Set(get().allFiles);
+      files.add(path);
+      set({
+        docs,
+        allFiles: [...files].sort(),
+        backlinks: buildBacklinks(docs),
+        problems: lintBundle(docs, get().schema),
+        selectedPath: path,
+        draft: content,
+        dirty: false,
+        conflict: false,
+        error: null,
+      });
+    },
+
+    createFolder: async (dirPath, name) => {
+      const clean = name.replace(/\/+$/, "");
+      if (clean === "") return;
+      await get().createDoc({
+        dirPath: dirPath === "" ? clean : `${dirPath}/${clean}`,
+        type: "index",
+        title: clean,
+        filename: "index.md",
+      });
+    },
+
+    renameDoc: async (oldPath, newPath) => {
+      const state = get();
+      if (state.root === null || oldPath === newPath) return;
+      if (state.dirty && state.selectedPath === oldPath) await state.saveNow();
+
+      const { root } = state;
+      const updates = rewriteLinksForRename(
+        get().docs,
+        get().backlinks,
+        oldPath,
+        newPath,
+      );
+      try {
+        // 1. Retarget inbound links in their files.
+        for (const [path, content] of updates) {
+          if (path !== oldPath) await platform.writeDoc(root, path, content);
+        }
+        // 2. Move the file.
+        await platform.renameDoc(root, oldPath, newPath);
+        // 3. If the doc's own links shifted, write the corrected content.
+        const ownContent = updates.get(oldPath);
+        if (ownContent !== undefined) {
+          await platform.writeDoc(root, newPath, ownContent);
+        }
+      } catch (err) {
+        set({ error: `Rename failed: ${message(err)}` });
+        return;
+      }
+
+      const docs = new Map(get().docs);
+      const moved = docs.get(oldPath);
+      docs.delete(oldPath);
+      const newContent = updates.get(oldPath) ?? moved?.source;
+      if (newContent !== undefined) {
+        docs.set(newPath, parseDoc({ path: newPath, content: newContent }));
+      }
+      for (const [path, content] of updates) {
+        if (path !== oldPath) docs.set(path, parseDoc({ path, content }));
+      }
+      const files = new Set(get().allFiles);
+      files.delete(oldPath);
+      files.add(newPath);
+      const wasSelected = get().selectedPath === oldPath;
+      set({
+        docs,
+        allFiles: [...files].sort(),
+        backlinks: buildBacklinks(docs),
+        problems: lintBundle(docs, get().schema),
+        ...(wasSelected
+          ? { selectedPath: newPath, draft: newContent ?? null, dirty: false }
+          : {}),
+        error: null,
+      });
+    },
+
+    deleteDoc: async (path) => {
+      const { root } = get();
+      if (root === null) return;
+      try {
+        await platform.deleteDoc(root, path);
+      } catch (err) {
+        set({ error: `Delete failed: ${message(err)}` });
+        return;
+      }
+      cancelAutosave();
+      const docs = new Map(get().docs);
+      docs.delete(path);
+      const files = new Set(get().allFiles);
+      files.delete(path);
+      const wasSelected = get().selectedPath === path;
+      set({
+        docs,
+        allFiles: [...files].sort(),
+        backlinks: buildBacklinks(docs),
+        problems: lintBundle(docs, get().schema),
+        ...(wasSelected
+          ? { selectedPath: null, draft: null, dirty: false, conflict: false }
+          : {}),
+        error: null,
+      });
     },
 
     onEdit: (text) => {

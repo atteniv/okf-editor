@@ -144,12 +144,78 @@ button {
   border-left: 1px solid var(--border);
 }
 
+.sidebar .tree-row {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+}
+
+.sidebar .tree-row .row-menu {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.sidebar .tree-row .kebab {
+  visibility: hidden;
+  padding: 0.1rem 0.35rem;
+  border-radius: 4px;
+  color: var(--muted);
+  line-height: 1;
+}
+
+.sidebar .tree-row:hover .kebab {
+  visibility: visible;
+}
+
+.sidebar .tree-row .kebab:hover {
+  background: var(--border);
+}
+
+.menu-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 5;
+}
+
+.sidebar .menu {
+  position: absolute;
+  right: 0;
+  top: 100%;
+  z-index: 6;
+  list-style: none;
+  margin: 0.15rem 0 0;
+  padding: 0.25rem;
+  min-width: 10rem;
+  background: Canvas;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+}
+
+.sidebar .menu button {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 0.35rem 0.6rem;
+  border-radius: 4px;
+  font-size: 0.85rem;
+}
+
+.sidebar .menu button:hover {
+  background: var(--border);
+}
+
+.sidebar .menu button.danger {
+  color: #dc2626;
+}
+
 .sidebar .tree-dir,
 .sidebar .tree-file {
   display: flex;
   align-items: center;
   gap: 0.35rem;
-  width: 100%;
+  flex: 1;
+  min-width: 0;
   text-align: left;
   padding: 0.22rem 0.4rem;
   border-radius: 4px;
@@ -655,4 +721,91 @@ button {
   display: grid;
   place-items: center;
   height: 100%;
+}
+
+/* ---- File-op dialogs ---- */
+
+.dialog-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 10;
+  background: rgba(0, 0, 0, 0.35);
+  display: grid;
+  place-items: center;
+}
+
+.dialog {
+  background: Canvas;
+  color: CanvasText;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.25);
+  padding: 1.25rem 1.5rem;
+  min-width: 22rem;
+  max-width: 90vw;
+}
+
+.dialog h3 {
+  margin: 0 0 0.75rem;
+  font-size: 1rem;
+}
+
+.dialog label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  margin-bottom: 0.6rem;
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+
+.dialog input {
+  font: inherit;
+  font-size: 0.9rem;
+  color: CanvasText;
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 0.35rem 0.5rem;
+}
+
+.dialog-hint {
+  font-size: 0.8rem;
+  color: var(--muted);
+  margin: 0.25rem 0 0.5rem;
+}
+
+.dialog-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+}
+
+.dialog-actions button {
+  padding: 0.35rem 0.9rem;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  font-size: 0.85rem;
+}
+
+.dialog-actions button:hover {
+  background: var(--border);
+}
+
+.dialog-actions button.primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: white;
+}
+
+.dialog-actions button.primary:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.dialog-actions button.danger {
+  background: #dc2626;
+  border-color: #dc2626;
+  color: white;
 }

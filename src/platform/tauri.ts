@@ -20,6 +20,10 @@ export const tauriPlatform: Platform = {
   writeDoc: (root, relPath, content) =>
     invoke<void>("doc_write", { root, relPath, content }),
 
+  renameDoc: (root, from, to) => invoke<void>("doc_rename", { root, from, to }),
+
+  deleteDoc: (root, relPath) => invoke<void>("doc_delete", { root, relPath }),
+
   watchStart: (root) => invoke<void>("watch_start", { root }),
 
   watchStop: (root) => invoke<void>("watch_stop", { root }),

@@ -17,6 +17,9 @@ export interface Platform {
   scanBundle(root: string): Promise<ScanEntry[]>;
   readDoc(root: string, relPath: string): Promise<string>;
   writeDoc(root: string, relPath: string, content: string): Promise<void>;
+  renameDoc(root: string, from: string, to: string): Promise<void>;
+  /** Moves to the OS trash — never a hard unlink. */
+  deleteDoc(root: string, relPath: string): Promise<void>;
   /** Start/stop the recursive fs watcher for a bundle root (DESIGN §7.2). */
   watchStart(root: string): Promise<void>;
   watchStop(root: string): Promise<void>;
