@@ -81,6 +81,18 @@ authoring in the app (everything but publish). Dogfood begins: start the
 Atteniv services-and-offerings bundle (proposal §11) in the app and file the
 friction as issues.
 
+### AI-1 — AI assistance (added 2026-07-05, ~1 wk; shifts M2+ accordingly)
+
+Maintainer-requested addition after M1: BYOK OpenRouter assistance (see
+DESIGN §13). Strengthens the brand-play story — an AI-native OKF editor.
+
+- [x] Keychain-backed secret store (no read path to the webview) — also
+      pre-builds M2's git-token storage
+- [x] Rust SSE streaming with cancellation; models listing
+- [x] AI settings (key, default model picker); generate-on-create in New
+      Document; doc-grounded chat panel with insert-at-cursor
+- [ ] AI-2 (unscheduled): bundle-graph grounding, ⌘K inline edits, lint fixes
+
 ### M2 — Git layer, Phase 1b (3 wks)
 
 - [ ] **Wk 1 — Git plumbing:** `git.rs` (detect/status/commit/pull/push/branch)

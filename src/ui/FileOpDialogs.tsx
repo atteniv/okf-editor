@@ -12,12 +12,15 @@ export type FileOp =
 interface DialogsProps {
   op: FileOp;
   schema: SchemaConfig;
+  /** Whether the AI prompt field should be offered in New Document. */
+  aiReady: boolean;
   onClose: () => void;
   onCreateDoc: (args: {
     dirPath: string;
     type: string;
     title: string;
     filename: string;
+    aiPrompt?: string;
   }) => void;
   onCreateFolder: (dirPath: string, name: string) => void;
   onRename: (oldPath: string, newPath: string) => void;
@@ -54,6 +57,7 @@ function locationLabel(dirPath: string): string {
 function NewDocForm({
   dirPath,
   schema,
+  aiReady,
   onClose,
   onCreateDoc,
 }: DialogsProps & { dirPath: string }) {
@@ -61,6 +65,7 @@ function NewDocForm({
   const [title, setTitle] = useState("");
   const [filename, setFilename] = useState("");
   const [filenameTouched, setFilenameTouched] = useState(false);
+  const [aiPrompt, setAiPrompt] = useState("");
   const effectiveFilename = filenameTouched
     ? filename
     : title === ""
@@ -73,7 +78,13 @@ function NewDocForm({
       onSubmit={(e) => {
         e.preventDefault();
         if (!valid) return;
-        onCreateDoc({ dirPath, type, title: title.trim(), filename: effectiveFilename });
+        onCreateDoc({
+          dirPath,
+          type,
+          title: title.trim(),
+          filename: effectiveFilename,
+          aiPrompt: aiPrompt.trim() === "" ? undefined : aiPrompt.trim(),
+        });
         onClose();
       }}
     >
@@ -113,6 +124,17 @@ function NewDocForm({
           placeholder="expense-policy.md"
         />
       </label>
+      {aiReady && (
+        <label>
+          Generate content with AI (optional)
+          <textarea
+            value={aiPrompt}
+            rows={3}
+            onChange={(e) => setAiPrompt(e.target.value)}
+            placeholder="Describe what this document should contain — the body will be drafted for you."
+          />
+        </label>
+      )}
       <div className="dialog-actions">
         <button type="button" onClick={onClose}>
           Cancel

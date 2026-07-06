@@ -14,6 +14,9 @@ pub enum ErrorCode {
     PathOutsideBundle,
     NotFound,
     Io,
+    Network,
+    /// A required credential/setting is missing (e.g. no API key yet).
+    NotConfigured,
 }
 
 impl AppError {

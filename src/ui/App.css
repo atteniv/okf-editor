@@ -89,6 +89,10 @@ button {
   height: 100vh;
 }
 
+.bundle-view.with-chat {
+  grid-template-columns: 260px 1fr 340px;
+}
+
 .sidebar {
   border-right: 1px solid var(--border);
   overflow-y: auto;
@@ -812,6 +816,181 @@ button {
   padding: 0.6rem 0.9rem;
   color: var(--muted);
   font-size: 0.85rem;
+}
+
+.ai-busy-banner {
+  padding: 0.4rem 1rem;
+  font-size: 0.8rem;
+  color: var(--muted);
+  border-bottom: 1px solid var(--border);
+}
+
+/* ---- Chat panel ---- */
+
+.chat-panel {
+  border-left: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  overflow: hidden;
+}
+
+.chat-panel header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.chat-title {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--muted);
+  flex: 1;
+}
+
+.chat-context {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: 0.75rem;
+  color: var(--muted);
+}
+
+.chat-panel header button {
+  padding: 0.15rem 0.4rem;
+  border-radius: 4px;
+  color: var(--muted);
+}
+
+.chat-panel header button:hover {
+  background: var(--border);
+}
+
+.chat-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  flex: 1;
+  color: var(--muted);
+  font-size: 0.9rem;
+  padding: 1rem;
+  text-align: center;
+}
+
+.chat-empty .primary,
+.empty .primary {
+  background: var(--accent);
+  color: white;
+  padding: 0.4rem 0.9rem;
+  border-radius: 6px;
+}
+
+.chat-empty-hint {
+  color: var(--muted);
+  font-size: 0.8rem;
+  padding: 0.5rem;
+}
+
+.chat-messages {
+  flex: 1;
+  overflow-y: auto;
+  padding: 0.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.chat-msg {
+  font-size: 0.85rem;
+  line-height: 1.5;
+}
+
+.chat-msg.user .chat-msg-body {
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+  border-radius: 8px;
+  padding: 0.5rem 0.7rem;
+}
+
+.chat-msg.assistant .chat-msg-body {
+  white-space: pre-wrap;
+}
+
+.chat-insert {
+  margin-top: 0.25rem;
+  font-size: 0.7rem;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 0.1rem 0.5rem;
+  color: var(--muted);
+}
+
+.chat-insert:hover {
+  background: var(--border);
+}
+
+.chat-error {
+  padding: 0.4rem 0.75rem;
+  font-size: 0.8rem;
+  color: #dc2626;
+  border-top: 1px solid var(--border);
+}
+
+.chat-panel footer {
+  display: flex;
+  gap: 0.5rem;
+  padding: 0.6rem 0.75rem;
+  border-top: 1px solid var(--border);
+}
+
+.chat-panel footer textarea {
+  flex: 1;
+  font: inherit;
+  font-size: 0.85rem;
+  color: inherit;
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 0.4rem 0.6rem;
+  resize: none;
+}
+
+.chat-panel footer button {
+  align-self: flex-end;
+  padding: 0.35rem 0.8rem;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  font-size: 0.85rem;
+}
+
+.chat-panel footer button.primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: white;
+}
+
+.chat-panel footer button.primary:disabled {
+  opacity: 0.5;
+}
+
+.dialog .ok {
+  color: #16a34a;
+  margin-left: 0.4rem;
+}
+
+.dialog textarea {
+  font: inherit;
+  font-size: 0.9rem;
+  color: CanvasText;
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 0.35rem 0.5rem;
+  resize: vertical;
 }
 
 /* ---- File-op dialogs ---- */
