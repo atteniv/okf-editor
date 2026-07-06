@@ -235,22 +235,6 @@ export function BundleView() {
         />
       </aside>
 
-      {showChat && (
-        <ChatPanel
-          schema={schema}
-          doc={draftDoc}
-          docs={docs}
-          aiReady={aiReady}
-          onOpenSettings={() => setSettingsOpen(true)}
-          onInsert={
-            selectedPath !== null && viewMode !== "preview"
-              ? (text) => editorInsertRef.current?.(text)
-              : null
-          }
-          onClose={() => setShowChat(false)}
-        />
-      )}
-
       {fileOp !== null && (
         <FileOpDialogs
           op={fileOp}
@@ -394,6 +378,22 @@ export function BundleView() {
           </div>
         )}
       </section>
+
+      {showChat && (
+        <ChatPanel
+          schema={schema}
+          doc={draftDoc}
+          docs={docs}
+          aiReady={aiReady}
+          onOpenSettings={() => setSettingsOpen(true)}
+          onInsert={
+            selectedPath !== null && viewMode !== "preview"
+              ? (text) => editorInsertRef.current?.(text)
+              : null
+          }
+          onClose={() => setShowChat(false)}
+        />
+      )}
     </div>
   );
 }
