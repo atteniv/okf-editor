@@ -10,6 +10,7 @@ export function StartScreen() {
 
   return (
     <main className="start-screen">
+      <img className="app-logo" src="/logo.png" alt="" width={96} height={96} />
       <h1>OKF Editor</h1>
       <p>A local-first, schema-aware editor for Open Knowledge Format bundles.</p>
 
