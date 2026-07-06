@@ -1,6 +1,11 @@
 import { describe, expect, it } from "vitest";
 import { parseDoc } from "./bundle";
-import { chatMessages, generateDocMessages, systemPrompt } from "./ai";
+import {
+  chatMessages,
+  extractReferences,
+  generateDocMessages,
+  systemPrompt,
+} from "./ai";
 import { DEFAULT_SCHEMA } from "./schema";
 
 const DOC = parseDoc({
@@ -47,9 +52,32 @@ describe("generateDocMessages", () => {
 describe("chatMessages", () => {
   it("prepends grounded system prompt to history", () => {
     const history = [{ role: "user" as const, content: "Summarize this doc" }];
-    const messages = chatMessages(DEFAULT_SCHEMA, DOC, history);
+    const messages = chatMessages(DEFAULT_SCHEMA, DOC, [], history);
     expect(messages[0].role).toBe("system");
     expect(messages[0].content).toContain("guides/a.md");
     expect(messages.at(-1)).toEqual(history[0]);
+  });
+
+  it("embeds @-referenced docs, deduping the open one", () => {
+    const other = parseDoc({
+      path: "policies/p.md",
+      content: "---\ntype: policy\ntitle: P\n---\n\nPolicy text.\n",
+    });
+    const messages = chatMessages(DEFAULT_SCHEMA, DOC, [other, DOC], []);
+    expect(messages[0].content).toContain("policies/p.md");
+    expect(messages[0].content).toContain("Policy text.");
+    // The open doc appears once (as the open doc), not again as a reference.
+    expect(messages[0].content.match(/guides\/a\.md/g)).toHaveLength(1);
+  });
+});
+
+describe("extractReferences", () => {
+  it("resolves @[path] tokens against the bundle, ignoring unknowns", () => {
+    const docs = new Map([[DOC.path, DOC]]);
+    const refs = extractReferences(
+      "Compare @[guides/a.md] with @[nope.md] and @[guides/a.md] again",
+      docs,
+    );
+    expect(refs).toEqual([DOC]);
   });
 });

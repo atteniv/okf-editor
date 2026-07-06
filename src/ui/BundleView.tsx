@@ -7,7 +7,7 @@ import { lintDoc, type Diagnostic } from "../core/lint";
 import { relativize } from "../core/links";
 import { renderMarkdown } from "../core/markdown";
 import { loadModel, streamChat } from "./aiClient";
-import { ChatPanel } from "./ChatPanel";
+import { ChatPanel, SparkleIcon } from "./ChatPanel";
 import { Editor } from "./Editor";
 import { FileOpDialogs, type FileOp } from "./FileOpDialogs";
 import { FileTree } from "./FileTree";
@@ -185,13 +185,6 @@ export function BundleView() {
             >
               Types
             </button>
-            <button
-              className={showChat ? "selected" : ""}
-              onClick={() => setShowChat(!showChat)}
-              title="AI assistant"
-            >
-              AI
-            </button>
           </div>
         </header>
         <nav className="doc-tree">
@@ -246,6 +239,7 @@ export function BundleView() {
         <ChatPanel
           schema={schema}
           doc={draftDoc}
+          docs={docs}
           aiReady={aiReady}
           onOpenSettings={() => setSettingsOpen(true)}
           onInsert={
@@ -288,6 +282,13 @@ export function BundleView() {
                 </span>
               </div>
               <div className="mode-toggle">
+                <button
+                  className={`sparkle-button ${showChat ? "selected" : ""}`}
+                  onClick={() => setShowChat(!showChat)}
+                  title="AI assistant"
+                >
+                  <SparkleIcon />
+                </button>
                 <button
                   className={showForm ? "selected" : ""}
                   onClick={() => setShowForm(!showForm)}
@@ -378,6 +379,13 @@ export function BundleView() {
           </div>
         ) : (
           <div className="empty">
+            <button
+              className="sparkle-button empty-sparkle"
+              onClick={() => setShowChat(!showChat)}
+              title="AI assistant"
+            >
+              <SparkleIcon />
+            </button>
             <p>Select a document from the tree.</p>
             <p className="hint">
               <kbd>⌘P</kbd> quick-open · <kbd>⌘N</kbd> new document ·{" "}

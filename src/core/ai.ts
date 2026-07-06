@@ -14,10 +14,11 @@ export interface ChatMessage {
 
 const BASE_PROMPT = `You are the writing assistant inside OKF Editor, a desktop editor for Open Knowledge Format (OKF) bundles. OKF documents are markdown files with YAML frontmatter; the only required frontmatter field is \`type\`. Write clear, well-structured markdown prose. Use relative markdown links between documents when referencing other documents in the bundle.`;
 
-/** System prompt, optionally grounded in the open document. */
+/** System prompt, grounded in the open document and any @-referenced docs. */
 export function systemPrompt(
   schema: SchemaConfig,
   doc: DocMeta | null,
+  references: DocMeta[] = [],
 ): string {
   const parts = [BASE_PROMPT];
   const types = Object.keys(schema.types);
@@ -35,7 +36,29 @@ export function systemPrompt(
         "\n```",
     );
   }
+  for (const reference of references) {
+    if (reference.path === doc?.path) continue;
+    parts.push(
+      `The user referenced this bundle document (path: ${reference.path}):\n\n` +
+        "```markdown\n" +
+        reference.source +
+        "\n```",
+    );
+  }
   return parts.join("\n\n");
+}
+
+/** `@[path]` tokens in a chat message → the docs they reference. */
+export function extractReferences(
+  text: string,
+  docs: Map<string, DocMeta>,
+): DocMeta[] {
+  const references: DocMeta[] = [];
+  for (const match of text.matchAll(/@\[([^\]]+)\]/g)) {
+    const doc = docs.get(match[1]);
+    if (doc !== undefined && !references.includes(doc)) references.push(doc);
+  }
+  return references;
 }
 
 /**
@@ -64,11 +87,15 @@ export function generateDocMessages(
   ];
 }
 
-/** Messages for the chat panel: history plus fresh doc grounding. */
+/** Messages for the chat panel: history plus fresh doc/reference grounding. */
 export function chatMessages(
   schema: SchemaConfig,
   doc: DocMeta | null,
+  references: DocMeta[],
   history: ChatMessage[],
 ): ChatMessage[] {
-  return [{ role: "system", content: systemPrompt(schema, doc) }, ...history];
+  return [
+    { role: "system", content: systemPrompt(schema, doc, references) },
+    ...history,
+  ];
 }

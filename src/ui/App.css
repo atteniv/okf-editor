@@ -827,6 +827,130 @@ button {
 
 /* ---- Chat panel ---- */
 
+.sparkle-icon {
+  width: 16px;
+  height: 16px;
+  color: var(--accent);
+}
+
+.sparkle-button {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.2rem 0.45rem;
+  border-radius: 4px;
+}
+
+.sparkle-button:hover {
+  background: var(--border);
+}
+
+.sparkle-button.selected {
+  background: color-mix(in srgb, var(--accent) 15%, transparent);
+}
+
+.empty-sparkle {
+  position: absolute;
+  top: 0.6rem;
+  right: 0.9rem;
+}
+
+.doc-pane {
+  position: relative;
+}
+
+.chat-welcome {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 1.25rem;
+  padding: 1rem;
+}
+
+.chat-welcome-headline {
+  text-align: center;
+  font-size: 1.05rem;
+  color: var(--accent);
+  font-weight: 500;
+}
+
+.chat-welcome-headline .at {
+  font-family: ui-monospace, monospace;
+  font-weight: 700;
+}
+
+.chat-suggestions {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.chat-suggestions button {
+  width: 100%;
+  text-align: left;
+  font-size: 0.85rem;
+  padding: 0.45rem 0.6rem;
+  border-radius: 6px;
+}
+
+.chat-suggestions button:hover {
+  background: var(--border);
+}
+
+.chat-input {
+  position: relative;
+  flex: 1;
+  display: flex;
+}
+
+.chat-input textarea {
+  flex: 1;
+}
+
+.mention-list {
+  position: absolute;
+  bottom: 100%;
+  left: 0;
+  right: 0;
+  z-index: 8;
+  list-style: none;
+  margin: 0 0 0.25rem;
+  padding: 0.25rem;
+  max-height: 14rem;
+  overflow-y: auto;
+  background: Canvas;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.15);
+}
+
+.mention-list button {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  width: 100%;
+  text-align: left;
+  padding: 0.3rem 0.5rem;
+  border-radius: 4px;
+}
+
+.mention-list button:hover {
+  background: var(--border);
+}
+
+.mention-title {
+  font-size: 0.85rem;
+}
+
+.mention-path {
+  font-size: 0.7rem;
+  font-family: ui-monospace, monospace;
+  color: var(--muted);
+}
+
 .chat-panel {
   border-left: 1px solid var(--border);
   display: flex;
