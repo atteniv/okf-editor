@@ -127,23 +127,25 @@ button {
 }
 
 /* ---- Folder tree ---- */
+/* Selectors are .sidebar-scoped: the tree lives inside .doc-tree, whose
+   generic `.doc-tree ul` reset would otherwise cancel the indents. */
 
-.file-tree,
-.file-tree ul {
+.sidebar .file-tree,
+.sidebar .file-tree ul {
   list-style: none;
   margin: 0;
   padding: 0;
 }
 
 /* Each nesting level: clear indent + a guide line so depth is unmistakable. */
-.file-tree ul {
-  margin-left: 1.05rem;
-  padding-left: 0.35rem;
+.sidebar .file-tree ul {
+  margin-left: 1.1rem;
+  padding-left: 0.4rem;
   border-left: 1px solid var(--border);
 }
 
-.tree-dir,
-.tree-file {
+.sidebar .tree-dir,
+.sidebar .tree-file {
   display: flex;
   align-items: center;
   gap: 0.35rem;
@@ -154,7 +156,7 @@ button {
   white-space: nowrap;
 }
 
-.tree-dir .chevron {
+.sidebar .tree-dir .chevron {
   font-size: 0.75rem;
   width: 0.7rem;
   color: var(--muted);
@@ -163,7 +165,7 @@ button {
 }
 
 /* Files have no chevron — a spacer keeps their icons aligned with folders. */
-.tree-file {
+.sidebar .tree-file {
   padding-left: calc(0.4rem + 0.7rem + 0.35rem);
 }
 
@@ -174,25 +176,25 @@ button {
   color: var(--muted);
 }
 
-.tree-file.selected .tree-icon {
+.sidebar .tree-file.selected .tree-icon {
   color: white;
 }
 
-.tree-file-inert {
+.sidebar .tree-file-inert {
   color: var(--muted);
   cursor: default;
 }
 
-.tree-file-inert:hover {
+.sidebar .tree-file-inert:hover {
   background: none;
 }
 
-.tree-dir:hover,
-.tree-file:hover {
+.sidebar .tree-dir:hover,
+.sidebar .tree-file:hover {
   background: var(--border);
 }
 
-.tree-file.selected {
+.sidebar .tree-file.selected {
   background: var(--accent);
   color: white;
 }
