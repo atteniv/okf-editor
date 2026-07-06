@@ -7,6 +7,7 @@ import { lintDoc, type Diagnostic } from "../core/lint";
 import { relativize } from "../core/links";
 import { renderMarkdown } from "../core/markdown";
 import { loadModel, streamChat } from "./aiClient";
+import { BundleOverview } from "./BundleOverview";
 import { ChatPanel, SparkleIcon } from "./ChatPanel";
 import { Editor } from "./Editor";
 import { FileOpDialogs, type FileOp } from "./FileOpDialogs";
@@ -362,7 +363,7 @@ export function BundleView() {
             </button>
           </div>
         ) : (
-          <div className="empty">
+          <>
             <button
               className="sparkle-button empty-sparkle"
               onClick={() => setShowChat(!showChat)}
@@ -370,12 +371,8 @@ export function BundleView() {
             >
               <SparkleIcon />
             </button>
-            <p>Select a document from the tree.</p>
-            <p className="hint">
-              <kbd>⌘P</kbd> quick-open · <kbd>⌘N</kbd> new document ·{" "}
-              <kbd>⌘S</kbd> save
-            </p>
-          </div>
+            <BundleOverview docs={docs} onOpen={(path) => void selectDoc(path)} />
+          </>
         )}
       </section>
 

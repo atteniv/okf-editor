@@ -734,6 +734,105 @@ button {
   height: 100%;
 }
 
+/* ---- Bundle overview graph ---- */
+
+.overview {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.overview svg {
+  flex: 1;
+  width: 100%;
+  min-height: 0;
+}
+
+.overview .edge {
+  stroke: var(--border);
+  stroke-width: 1.5;
+}
+
+.overview .edge.highlighted {
+  stroke: var(--accent);
+  stroke-width: 2;
+}
+
+.overview .node {
+  cursor: pointer;
+}
+
+.overview .node circle {
+  stroke: transparent;
+  stroke-width: 3;
+}
+
+.overview .node.hovered circle {
+  stroke: color-mix(in srgb, currentColor 25%, transparent);
+}
+
+.overview .node text {
+  font-size: 12px;
+  text-anchor: middle;
+  fill: currentColor;
+  opacity: 0.75;
+  pointer-events: none;
+}
+
+.overview .node.hovered text {
+  opacity: 1;
+  font-weight: 600;
+}
+
+.overview-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.5rem 1rem;
+  border-top: 1px solid var(--border);
+  flex-wrap: wrap;
+}
+
+.overview-legend {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  gap: 0.9rem;
+  flex-wrap: wrap;
+  font-size: 0.75rem;
+  color: var(--muted);
+}
+
+.overview-legend li {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.legend-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+.overview-footer .hint {
+  font-size: 0.75rem;
+  color: var(--muted);
+  margin: 0;
+}
+
+.overview-footer kbd {
+  font-family: inherit;
+  background: var(--border);
+  border-radius: 4px;
+  padding: 0.05rem 0.35rem;
+  font-size: 0.7rem;
+}
+
 .empty .primary {
   background: var(--accent);
   color: white;
