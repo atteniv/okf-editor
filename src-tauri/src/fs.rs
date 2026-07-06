@@ -150,9 +150,11 @@ mod tests {
         std::fs::write(dir.path().join("ignored.md"), "x").unwrap();
         let entries = bundle_scan(dir.path().to_string_lossy().into_owned()).unwrap();
         let paths: Vec<&str> = entries.iter().map(|e| e.path.as_str()).collect();
-        assert!(!paths.iter().any(|p| p.starts_with(".git")));
+        assert!(!paths.iter().any(|p| p.starts_with(".git/")));
         assert!(!paths.contains(&"ignored.md"));
         assert!(paths.contains(&"guides/a.md"));
+        // .gitignore itself is a visible dotfile, like any file manager shows.
+        assert!(paths.contains(&".gitignore"));
     }
 
     #[test]
