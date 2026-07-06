@@ -69,6 +69,8 @@ export const tauriPlatform: Platform = {
 
   gitClone: (url, dest) => invoke<void>("git_clone", { url, dest }),
 
+  gitInit: (dest) => invoke<void>("git_init", { dest }),
+
   githubVerify: () =>
     invoke<{ login: string; name: string | null }>("github_verify"),
 

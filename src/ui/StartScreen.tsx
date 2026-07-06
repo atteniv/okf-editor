@@ -1,10 +1,12 @@
 import { useState } from "react";
 import { CloneDialog } from "./CloneDialog";
+import { NewBundleDialog } from "./NewBundleDialog";
 import { useStore } from "./store";
 
 export function StartScreen() {
   const { openFolder, openBundle, recents, error } = useStore();
   const [cloning, setCloning] = useState(false);
+  const [creating, setCreating] = useState(false);
 
   return (
     <main className="start-screen">
@@ -12,7 +14,10 @@ export function StartScreen() {
       <p>A local-first, schema-aware editor for Open Knowledge Format bundles.</p>
 
       <div className="start-actions">
-        <button className="primary" onClick={() => void openFolder()}>
+        <button className="primary" onClick={() => setCreating(true)}>
+          New bundle…
+        </button>
+        <button className="secondary" onClick={() => void openFolder()}>
           Open bundle folder…
         </button>
         <button className="secondary" onClick={() => setCloning(true)}>
@@ -20,6 +25,7 @@ export function StartScreen() {
         </button>
       </div>
       {cloning && <CloneDialog onClose={() => setCloning(false)} />}
+      {creating && <NewBundleDialog onClose={() => setCreating(false)} />}
 
       {error && <p className="error">{error}</p>}
 

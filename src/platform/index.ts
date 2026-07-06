@@ -56,6 +56,8 @@ export interface Platform {
   gitPush(root: string, branch?: string): Promise<void>;
   gitCreateBranch(root: string, name: string): Promise<void>;
   gitClone(url: string, dest: string): Promise<void>;
+  /** git init -b main (creates the directory). */
+  gitInit(dest: string): Promise<void>;
 
   // --- GitHub REST (token from keychain; webview never sees it) ---
   githubVerify(): Promise<{ login: string; name: string | null }>;

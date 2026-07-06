@@ -87,6 +87,7 @@ pub fn run() {
             git::git_push,
             git::git_create_branch,
             git::git_clone,
+            git::git_init,
             github::github_verify,
             github::github_list_repos
         ])
