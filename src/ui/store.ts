@@ -86,12 +86,13 @@ interface AppState {
   setViewMode(mode: ViewMode): void;
   setTreeMode(mode: TreeMode): void;
 
-  /** Create a doc from the type's template; selects it on success. */
+  /** Create a doc from the type's template; selects it unless select:false. */
   createDoc(args: {
     dirPath: string;
     type: string;
     title: string;
     filename: string;
+    select?: boolean;
   }): Promise<void>;
   /** Create a folder by creating its index.md cover page. */
   createFolder(dirPath: string, name: string): Promise<void>;
@@ -305,7 +306,7 @@ export const useStore = create<AppState>((set, get) => {
       set({ treeMode: mode });
     },
 
-    createDoc: async ({ dirPath, type, title, filename }) => {
+    createDoc: async ({ dirPath, type, title, filename, select = true }) => {
       const { root, schema } = get();
       if (root === null) return;
       const path = dirPath === "" ? filename : `${dirPath}/${filename}`;
@@ -341,10 +342,9 @@ export const useStore = create<AppState>((set, get) => {
         allFiles: [...files].sort(),
         backlinks: buildBacklinks(docs),
         problems: lintBundle(docs, get().schema),
-        selectedPath: path,
-        draft: content,
-        dirty: false,
-        conflict: false,
+        ...(select
+          ? { selectedPath: path, draft: content, dirty: false, conflict: false }
+          : {}),
         error: null,
       });
     },

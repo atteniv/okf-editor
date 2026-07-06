@@ -4,11 +4,15 @@ import {
   type CompletionResult,
 } from "@codemirror/autocomplete";
 import { markdown } from "@codemirror/lang-markdown";
-import { linter, type Diagnostic as CmDiagnostic } from "@codemirror/lint";
+import {
+  linter,
+  lintGutter,
+  type Diagnostic as CmDiagnostic,
+} from "@codemirror/lint";
 import { EditorView } from "@codemirror/view";
 import { basicSetup } from "codemirror";
 import { useEffect, useRef } from "react";
-import type { Diagnostic } from "../core/lint";
+import type { Diagnostic, QuickFix } from "../core/lint";
 
 interface EditorProps {
   /** Doc identity — remounting state when the user switches documents. */
@@ -21,6 +25,12 @@ interface EditorProps {
   linkTargets: string[];
   /** Receives an insert-at-cursor function while the editor is mounted. */
   registerInsert?: (insert: ((text: string) => void) | null) => void;
+  /** Receives a scroll-to-range function while the editor is mounted. */
+  registerNavigate?: (
+    navigate: ((from: number, to: number) => void) | null,
+  ) => void;
+  /** Invoked when the user clicks a quick-fix action in a lint tooltip. */
+  onQuickFix?: (fix: QuickFix) => void;
 }
 
 /** Thin React wrapper around CodeMirror 6. */
@@ -31,17 +41,21 @@ export function Editor({
   diagnostics,
   linkTargets,
   registerInsert,
+  registerNavigate,
+  onQuickFix,
 }: EditorProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const viewRef = useRef<EditorView | null>(null);
   const onChangeRef = useRef(onChange);
   const diagnosticsRef = useRef(diagnostics);
   const linkTargetsRef = useRef(linkTargets);
+  const onQuickFixRef = useRef(onQuickFix);
   useEffect(() => {
     onChangeRef.current = onChange;
     diagnosticsRef.current = diagnostics;
     linkTargetsRef.current = linkTargets;
-  }, [onChange, diagnostics, linkTargets]);
+    onQuickFixRef.current = onQuickFix;
+  }, [onChange, diagnostics, linkTargets, onQuickFix]);
 
   // (Re)create the view when the document identity changes.
   useEffect(() => {
@@ -59,20 +73,35 @@ export function Editor({
           }
         }),
         // Diagnostics come from core/lint via the ref; re-runs on doc changes.
+        lintGutter(),
         linter(
           (view) => {
             const max = view.state.doc.length;
             return diagnosticsRef.current
               .filter((d) => d.where === "body" && d.from !== undefined)
               .filter((d) => d.from! <= max && d.to! <= max)
-              .map(
-                (d): CmDiagnostic => ({
+              .map((d): CmDiagnostic => {
+                const fix = d.fix;
+                return {
                   from: d.from!,
                   to: d.to!,
                   severity: d.severity,
                   message: `${d.message} (${d.rule})`,
-                }),
-              );
+                  ...(fix !== undefined
+                    ? {
+                        actions: [
+                          {
+                            name:
+                              fix.kind === "create-doc"
+                                ? "Create document"
+                                : "Fix",
+                            apply: () => onQuickFixRef.current?.(fix),
+                          },
+                        ],
+                      }
+                    : {}),
+                };
+              });
           },
           { delay: 300 },
         ),
@@ -100,8 +129,18 @@ export function Editor({
       view.dispatch(view.state.replaceSelection(text));
       view.focus();
     });
+    registerNavigate?.((from, to) => {
+      const max = view.state.doc.length;
+      if (from > max) return;
+      view.dispatch({
+        selection: { anchor: from, head: Math.min(to, max) },
+        effects: EditorView.scrollIntoView(from, { y: "center" }),
+      });
+      view.focus();
+    });
     return () => {
       registerInsert?.(null);
+      registerNavigate?.(null);
       view.destroy();
       viewRef.current = null;
     };

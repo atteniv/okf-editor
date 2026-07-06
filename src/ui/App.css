@@ -529,16 +529,8 @@ body.resizing {
   font-size: 0.8rem;
 }
 
-.problems-list > li > button {
-  display: block;
-  width: 100%;
-  text-align: left;
+.problems-list > li {
   padding: 0.3rem 0.5rem;
-  border-radius: 4px;
-}
-
-.problems-list > li > button:hover {
-  background: var(--border);
 }
 
 .problem-path {
@@ -553,11 +545,45 @@ body.resizing {
   padding: 0 0 0 0.5rem;
 }
 
-.problems-list li.error {
+.problem-row {
+  display: flex;
+  align-items: baseline;
+  gap: 0.4rem;
+}
+
+.problem-row .problem-jump {
+  flex: 1;
+  text-align: left;
+  padding: 0.15rem 0.3rem;
+  border-radius: 4px;
+  color: inherit;
+}
+
+.problem-row .problem-jump:hover {
+  background: var(--border);
+}
+
+.problem-row .problem-fix {
+  flex-shrink: 0;
+  font-size: 0.7rem;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 0.05rem 0.4rem;
+  color: var(--muted);
+}
+
+.problem-row .problem-fix:hover {
+  background: var(--border);
+  color: inherit;
+}
+
+.problems-list li.error,
+.problem-row.error {
   color: #dc2626;
 }
 
-.problems-list li.warning {
+.problems-list li.warning,
+.problem-row.warning {
   color: #b45309;
 }
 
