@@ -49,9 +49,12 @@ fn ensure_askpass() -> Result<std::path::PathBuf, AppError> {
     Ok(path)
 }
 
-/// Attach credentials for remote operations when a token exists.
+/// Attach credentials for remote operations when a token exists. An
+/// unavailable keychain (headless Linux without a Secret Service, CI)
+/// degrades to "no token": local/public remotes still work, and a remote
+/// that truly needs auth fails with a classified auth error instead.
 fn with_credentials(cmd: &mut Command) -> Result<(), AppError> {
-    if let Some(token) = secrets::get(TOKEN_NAME)? {
+    if let Ok(Some(token)) = secrets::get(TOKEN_NAME) {
         let askpass = ensure_askpass()?;
         cmd.env("GIT_ASKPASS", askpass);
         cmd.env(TOKEN_ENV, token);
