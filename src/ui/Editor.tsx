@@ -19,6 +19,8 @@ interface EditorProps {
   diagnostics: Diagnostic[];
   /** Link-autocomplete candidates, already relative to this doc. */
   linkTargets: string[];
+  /** Receives an insert-at-cursor function while the editor is mounted. */
+  registerInsert?: (insert: ((text: string) => void) | null) => void;
 }
 
 /** Thin React wrapper around CodeMirror 6. */
@@ -28,6 +30,7 @@ export function Editor({
   onChange,
   diagnostics,
   linkTargets,
+  registerInsert,
 }: EditorProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const viewRef = useRef<EditorView | null>(null);
@@ -93,7 +96,12 @@ export function Editor({
       ],
     });
     viewRef.current = view;
+    registerInsert?.((text) => {
+      view.dispatch(view.state.replaceSelection(text));
+      view.focus();
+    });
     return () => {
+      registerInsert?.(null);
       view.destroy();
       viewRef.current = null;
     };

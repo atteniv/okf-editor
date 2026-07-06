@@ -73,6 +73,12 @@ interface AppState {
   /** Bundle-wide lint findings, path → diagnostics (saved state, not draft). */
   problems: Map<string, Diagnostic[]>;
 
+  /** App settings dialog (AI key + model). Reachable from every screen. */
+  settingsOpen: boolean;
+  aiReady: boolean;
+  setSettingsOpen(open: boolean): void;
+  refreshAiStatus(): Promise<void>;
+
   openFolder(): Promise<void>;
   openBundle(root: string): Promise<void>;
   selectDoc(path: string): Promise<void>;
@@ -204,6 +210,18 @@ export const useStore = create<AppState>((set, get) => {
     schema: DEFAULT_SCHEMA,
     schemaError: null,
     problems: new Map(),
+    settingsOpen: false,
+    aiReady: false,
+
+    setSettingsOpen: (open) => set({ settingsOpen: open }),
+
+    refreshAiStatus: async () => {
+      try {
+        set({ aiReady: await platform.aiKeyStatus() });
+      } catch {
+        set({ aiReady: false });
+      }
+    },
 
     openFolder: async () => {
       const root = await platform.pickFolder();

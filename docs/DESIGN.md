@@ -358,7 +358,35 @@ frontend lint/typecheck/test/build once scaffolding lands; release workflow
 - Version scheme: SemVer from `v0.1.0`; CHANGELOG per Keep-a-Changelog (already
   in place).
 
-## 13. Deliberately deferred
+## 13. AI assistance (added post-M1)
+
+BYOK via **OpenRouter** — one user-supplied key reaches every major model;
+the default model is a user setting (any OpenRouter model id). Added between
+M1 and M2 as milestone AI-1 (see PLAN).
+
+- **Key posture = git-token posture (§7.4):** the key lives in the OS
+  keychain; every OpenRouter request happens in Rust (`ai.rs`), which
+  streams SSE chunks to the UI as `okf://ai-stream` events with per-request
+  cancellation. There is deliberately no `secret_get` command — the webview
+  can set/delete/check secrets, never read them. Untrusted bundle content
+  can therefore never exfiltrate the key.
+- **Considered and rejected: calling OpenRouter from the webview** — puts
+  the key in JS memory and requires loosening the CSP.
+- **Surfaces (AI-1):** optional generate-on-create prompt in the New
+  Document dialog (model writes the body; frontmatter stays editor-owned,
+  streamed into the editor via the normal draft/autosave path), and a
+  toggleable chat panel grounded in the open document with
+  insert-at-cursor. Prompt construction is pure TS in `core/ai.ts` — what
+  those functions embed is exactly what leaves the machine.
+- **Privacy:** BYOK and off by default; the settings dialog states plainly
+  that AI use sends document content to OpenRouter under the user's key.
+  No telemetry, unchanged (§9).
+- **Planned next (AI-2+):** bundle-aware grounding (feed the open doc's
+  link/backlink neighborhood — the knowledge graph is the retrieval
+  structure; no vector store at bundle scale), ⌘K inline edits, AI lint
+  fixes.
+
+## 14. Deliberately deferred
 
 Graph view (data source already maintained, §4) · embedded `git2` (same command
 signatures, §7.3) · hosted web variant (enforced by the `platform/` seam, §3) ·

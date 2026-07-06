@@ -27,6 +27,32 @@ export interface Platform {
   onFsChanged(
     handler: (event: { root: string; paths: string[] }) => void,
   ): Promise<() => void>;
+
+  // --- Secrets (OS keychain; write-only from the webview's perspective) ---
+  secretSet(name: string, value: string): Promise<void>;
+  secretDelete(name: string): Promise<void>;
+  secretExists(name: string): Promise<boolean>;
+
+  // --- AI (OpenRouter via Rust; the key never enters the webview) ---
+  aiChat(
+    requestId: string,
+    model: string,
+    messages: { role: string; content: string }[],
+  ): Promise<void>;
+  aiCancel(requestId: string): Promise<void>;
+  aiModels(): Promise<{ id: string; name: string }[]>;
+  aiKeyStatus(): Promise<boolean>;
+  onAiStream(
+    handler: (event: AiStreamEvent) => void,
+  ): Promise<() => void>;
+  /** Fires when the native Settings… menu item is chosen. */
+  onOpenSettings(handler: () => void): Promise<() => void>;
+}
+
+export interface AiStreamEvent {
+  request_id: string;
+  kind: "delta" | "done" | "error";
+  text: string;
 }
 
 /** Structured error shape thrown across the command boundary (DESIGN §7). */

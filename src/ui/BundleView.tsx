@@ -1,10 +1,14 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { generateDocMessages } from "../core/ai";
 import { groupByType, parseDoc } from "../core/bundle";
 import { buildFileTree, dirsContaining } from "../core/filetree";
 import { splitFrontmatter } from "../core/frontmatter";
 import { lintDoc, type Diagnostic } from "../core/lint";
 import { relativize } from "../core/links";
 import { renderMarkdown } from "../core/markdown";
+import { loadModel, streamChat } from "./aiClient";
+import { BundleOverview } from "./BundleOverview";
+import { ChatPanel, SparkleIcon } from "./ChatPanel";
 import { Editor } from "./Editor";
 import { FileOpDialogs, type FileOp } from "./FileOpDialogs";
 import { FileTree } from "./FileTree";
@@ -49,6 +53,12 @@ export function BundleView() {
   const [showForm, setShowForm] = useState(true);
   const [fileOp, setFileOp] = useState<FileOp | null>(null);
   const [quickOpen, setQuickOpen] = useState(false);
+  const [showChat, setShowChat] = useState(false);
+  const [aiBusy, setAiBusy] = useState(false);
+  const [aiError, setAiError] = useState<string | null>(null);
+  const editorInsertRef = useRef<((text: string) => void) | null>(null);
+  const aiReady = useStore((s) => s.aiReady);
+  const setSettingsOpen = useStore((s) => s.setSettingsOpen);
 
   // Keyboard shortcuts: Cmd/Ctrl+S save, Cmd/Ctrl+N new doc, Cmd/Ctrl+P open.
   const saveNow = useStore((s) => s.saveNow);
@@ -88,11 +98,18 @@ export function BundleView() {
   const selected = selectedPath !== null ? docs.get(selectedPath) : undefined;
   const split = draft !== null ? splitFrontmatter(draft) : null;
 
-  // Live lint of the current draft (unsaved edits included).
-  const draftDiagnostics = useMemo<Diagnostic[]>(() => {
-    if (draft === null || selectedPath === null) return [];
-    return lintDoc(parseDoc({ path: selectedPath, content: draft }), docs, schema);
-  }, [draft, selectedPath, docs, schema]);
+  // The draft as a parsed doc (live lint + chat grounding).
+  const draftDoc = useMemo(
+    () =>
+      draft !== null && selectedPath !== null
+        ? parseDoc({ path: selectedPath, content: draft })
+        : null,
+    [draft, selectedPath],
+  );
+  const draftDiagnostics = useMemo<Diagnostic[]>(
+    () => (draftDoc !== null ? lintDoc(draftDoc, docs, schema) : []),
+    [draftDoc, docs, schema],
+  );
   const frontmatterDiagnostics = draftDiagnostics.filter(
     (d) => d.where === "frontmatter",
   );
@@ -106,8 +123,46 @@ export function BundleView() {
       .sort();
   }, [docs, selectedPath]);
 
+  /** Create + optionally stream AI-generated body into the new doc. */
+  const handleCreateDoc = async (args: {
+    dirPath: string;
+    type: string;
+    title: string;
+    filename: string;
+    aiPrompt?: string;
+  }) => {
+    await createDoc(args);
+    if (args.aiPrompt === undefined) return;
+    const model = loadModel();
+    if (model === "") {
+      setAiError("Pick a default model in AI settings to generate content.");
+      return;
+    }
+    const state = useStore.getState();
+    if (state.draft === null) return; // creation failed; store shows the error
+    const baseBody = splitFrontmatter(state.draft).body;
+    let generated = "";
+    setAiBusy(true);
+    setAiError(null);
+    await streamChat(
+      model,
+      generateDocMessages(schema, args.type, args.title, args.aiPrompt),
+      {
+        onDelta: (text) => {
+          generated += text;
+          useStore.getState().onEditBody(baseBody + generated);
+        },
+        onDone: () => setAiBusy(false),
+        onError: (detail) => {
+          setAiBusy(false);
+          setAiError(detail);
+        },
+      },
+    );
+  };
+
   return (
-    <div className="bundle-view">
+    <div className={`bundle-view ${showChat ? "with-chat" : ""}`}>
       <aside className="sidebar">
         <header>
           <button onClick={() => void closeBundle()} title="Back to start">
@@ -185,8 +240,9 @@ export function BundleView() {
         <FileOpDialogs
           op={fileOp}
           schema={schema}
+          aiReady={aiReady}
           onClose={() => setFileOp(null)}
-          onCreateDoc={(args) => void createDoc(args)}
+          onCreateDoc={(args) => void handleCreateDoc(args)}
           onCreateFolder={(dir, name) => void createFolder(dir, name)}
           onRename={(from, to) => void renameDoc(from, to)}
           onDelete={(path) => void deleteDoc(path)}
@@ -211,6 +267,13 @@ export function BundleView() {
                 </span>
               </div>
               <div className="mode-toggle">
+                <button
+                  className={`sparkle-button ${showChat ? "selected" : ""}`}
+                  onClick={() => setShowChat(!showChat)}
+                  title="AI assistant"
+                >
+                  <SparkleIcon />
+                </button>
                 <button
                   className={showForm ? "selected" : ""}
                   onClick={() => setShowForm(!showForm)}
@@ -245,6 +308,15 @@ export function BundleView() {
             )}
             {error && <div className="error-banner">{error}</div>}
             {schemaError && <div className="error-banner">{schemaError}</div>}
+            {aiError && (
+              <div className="error-banner">
+                AI: {aiError}{" "}
+                <button onClick={() => setAiError(null)}>dismiss</button>
+              </div>
+            )}
+            {aiBusy && (
+              <div className="ai-busy-banner">Generating with AI…</div>
+            )}
 
             {showForm && (
               <FrontmatterForm
@@ -272,6 +344,9 @@ export function BundleView() {
                   onChange={onEditBody}
                   diagnostics={draftDiagnostics}
                   linkTargets={linkTargets}
+                  registerInsert={(insert) => {
+                    editorInsertRef.current = insert;
+                  }}
                 />
               )}
               {viewMode !== "edit" && <Preview source={draft} />}
@@ -288,15 +363,34 @@ export function BundleView() {
             </button>
           </div>
         ) : (
-          <div className="empty">
-            <p>Select a document from the tree.</p>
-            <p className="hint">
-              <kbd>⌘P</kbd> quick-open · <kbd>⌘N</kbd> new document ·{" "}
-              <kbd>⌘S</kbd> save
-            </p>
-          </div>
+          <>
+            <button
+              className="sparkle-button empty-sparkle"
+              onClick={() => setShowChat(!showChat)}
+              title="AI assistant"
+            >
+              <SparkleIcon />
+            </button>
+            <BundleOverview docs={docs} onOpen={(path) => void selectDoc(path)} />
+          </>
         )}
       </section>
+
+      {showChat && (
+        <ChatPanel
+          schema={schema}
+          doc={draftDoc}
+          docs={docs}
+          aiReady={aiReady}
+          onOpenSettings={() => setSettingsOpen(true)}
+          onInsert={
+            selectedPath !== null && viewMode !== "preview"
+              ? (text) => editorInsertRef.current?.(text)
+              : null
+          }
+          onClose={() => setShowChat(false)}
+        />
+      )}
     </div>
   );
 }
