@@ -4,6 +4,7 @@
 mod ai;
 mod error;
 mod fs;
+mod git;
 mod secrets;
 mod watch;
 
@@ -77,7 +78,14 @@ pub fn run() {
             ai::ai_chat,
             ai::ai_cancel,
             ai::ai_models,
-            ai::ai_key_status
+            ai::ai_key_status,
+            git::git_detect,
+            git::git_status,
+            git::git_commit,
+            git::git_pull,
+            git::git_push,
+            git::git_create_branch,
+            git::git_clone
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

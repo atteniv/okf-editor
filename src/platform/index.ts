@@ -47,6 +47,29 @@ export interface Platform {
   ): Promise<() => void>;
   /** Fires when the native Settings… menu item is chosen. */
   onOpenSettings(handler: () => void): Promise<() => void>;
+
+  // --- Git (system git via Rust; token via askpass, never argv/URL) ---
+  gitDetect(): Promise<{ version: string } | null>;
+  gitStatus(root: string): Promise<GitStatus>;
+  gitCommit(root: string, message: string, signoff: boolean): Promise<void>;
+  gitPull(root: string): Promise<void>;
+  gitPush(root: string, branch?: string): Promise<void>;
+  gitCreateBranch(root: string, name: string): Promise<void>;
+  gitClone(url: string, dest: string): Promise<void>;
+}
+
+export interface GitFileChange {
+  path: string;
+  /** Porcelain XY code, or "??" for untracked. */
+  status: string;
+}
+
+export interface GitStatus {
+  branch: string;
+  ahead: number;
+  behind: number;
+  changes: GitFileChange[];
+  is_repo: boolean;
 }
 
 export interface AiStreamEvent {
