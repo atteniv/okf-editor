@@ -264,6 +264,14 @@ git_create_branch(root, name)
 - Pull-before-push; a conflicted pull returns a structured error the UI turns
   into "resolve in your own tools, then retry" guidance.
 - `git2` (libgit2) is a later swap behind the same command signatures.
+- **Considered and rejected: isomorphic-git** (JS git in the webview). It has
+  no fs where it runs — every object/index op would bridge the Tauri IPC
+  boundary (git does thousands of small fs ops per command), and push auth
+  would pull the token into the webview, breaking the §7.4 posture. It's the
+  right tool only for the hosted web variant (§13), where no native option
+  exists.
+- Status UI: `git status --porcelain=v2` parsed in Rust → tree badges
+  (M/A/U, VS Code-style) + the publish panel's changed-file list.
 
 ### 7.4 secrets.rs
 ```

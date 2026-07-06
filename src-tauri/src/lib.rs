@@ -15,6 +15,8 @@ pub fn run() {
             fs::bundle_scan,
             fs::doc_read,
             fs::doc_write,
+            fs::doc_rename,
+            fs::doc_delete,
             watch::watch_start,
             watch::watch_stop
         ])
