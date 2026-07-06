@@ -209,7 +209,7 @@ function AiSection({ onChanged }: { onChanged: () => void }) {
         setFailure(`Keychain check failed: ${describe(err)}`),
       );
     loadModels();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
   }, []);
 
   const saveKey = async () => {
