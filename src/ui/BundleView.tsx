@@ -192,12 +192,6 @@ export function BundleView() {
             >
               AI
             </button>
-            <button
-              onClick={() => setSettingsOpen(true)}
-              title="Settings (⌘,)"
-            >
-              ⚙
-            </button>
           </div>
         </header>
         <nav className="doc-tree">

@@ -44,20 +44,6 @@ button {
   max-width: 32rem;
 }
 
-.settings-corner {
-  position: fixed;
-  top: 0.75rem;
-  right: 1rem;
-  font-size: 0.8rem;
-  color: var(--muted);
-  padding: 0.25rem 0.6rem;
-  border-radius: 6px;
-}
-
-.settings-corner:hover {
-  background: var(--border);
-}
-
 .recents {
   margin-top: 1.5rem;
   min-width: 20rem;

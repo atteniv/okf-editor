@@ -7,11 +7,60 @@ mod fs;
 mod secrets;
 mod watch;
 
+use tauri::menu::{MenuBuilder, MenuItemBuilder, SubmenuBuilder};
+use tauri::Emitter;
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_dialog::init())
+        .setup(|app| {
+            // Native menu: the app menu carries Settings… (Cmd+,); Edit and
+            // Window keep the standard bindings a custom menu would drop.
+            let settings = MenuItemBuilder::with_id("settings", "Settings…")
+                .accelerator("CmdOrCtrl+,")
+                .build(app)?;
+            let app_menu = SubmenuBuilder::new(app, "OKF Editor")
+                .about(None)
+                .separator()
+                .item(&settings)
+                .separator()
+                .services()
+                .separator()
+                .hide()
+                .hide_others()
+                .show_all()
+                .separator()
+                .quit()
+                .build()?;
+            let edit_menu = SubmenuBuilder::new(app, "Edit")
+                .undo()
+                .redo()
+                .separator()
+                .cut()
+                .copy()
+                .paste()
+                .select_all()
+                .build()?;
+            let window_menu = SubmenuBuilder::new(app, "Window")
+                .minimize()
+                .maximize()
+                .separator()
+                .fullscreen()
+                .close_window()
+                .build()?;
+            let menu = MenuBuilder::new(app)
+                .items(&[&app_menu, &edit_menu, &window_menu])
+                .build()?;
+            app.set_menu(menu)?;
+            Ok(())
+        })
+        .on_menu_event(|app, event| {
+            if event.id().as_ref() == "settings" {
+                let _ = app.emit("okf://open-settings", ());
+            }
+        })
         .manage(watch::WatchState::default())
         .manage(ai::AiState::default())
         .invoke_handler(tauri::generate_handler![

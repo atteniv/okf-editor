@@ -1,5 +1,6 @@
 import { useEffect } from "react";
 import "./App.css";
+import { tauriPlatform as platform } from "../platform";
 import { AiSettings } from "./AiSettings";
 import { BundleView } from "./BundleView";
 import { StartScreen } from "./StartScreen";
@@ -15,16 +16,12 @@ function App() {
     void refreshAiStatus();
   }, [refreshAiStatus]);
 
-  // ⌘/Ctrl+, — the platform-standard settings shortcut.
+  // Native app menu: Settings… (Cmd+,).
   useEffect(() => {
-    const onKeyDown = (e: KeyboardEvent) => {
-      if ((e.metaKey || e.ctrlKey) && e.key === ",") {
-        e.preventDefault();
-        setSettingsOpen(true);
-      }
+    const subscription = platform.onOpenSettings(() => setSettingsOpen(true));
+    return () => {
+      void subscription.then((unlisten) => unlisten());
     };
-    window.addEventListener("keydown", onKeyDown);
-    return () => window.removeEventListener("keydown", onKeyDown);
   }, [setSettingsOpen]);
 
   return (

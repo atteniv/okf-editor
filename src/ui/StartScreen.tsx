@@ -1,17 +1,10 @@
 import { useStore } from "./store";
 
 export function StartScreen() {
-  const { openFolder, openBundle, recents, error, setSettingsOpen } = useStore();
+  const { openFolder, openBundle, recents, error } = useStore();
 
   return (
     <main className="start-screen">
-      <button
-        className="settings-corner"
-        onClick={() => setSettingsOpen(true)}
-        title="Settings (⌘,)"
-      >
-        ⚙ Settings
-      </button>
       <h1>OKF Editor</h1>
       <p>A local-first, schema-aware editor for Open Knowledge Format bundles.</p>
 

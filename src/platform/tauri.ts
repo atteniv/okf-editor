@@ -50,4 +50,6 @@ export const tauriPlatform: Platform = {
 
   onAiStream: (handler) =>
     listen<AiStreamEvent>("okf://ai-stream", (event) => handler(event.payload)),
+
+  onOpenSettings: (handler) => listen("okf://open-settings", () => handler()),
 };

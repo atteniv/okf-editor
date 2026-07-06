@@ -45,6 +45,8 @@ export interface Platform {
   onAiStream(
     handler: (event: AiStreamEvent) => void,
   ): Promise<() => void>;
+  /** Fires when the native Settings… menu item is chosen. */
+  onOpenSettings(handler: () => void): Promise<() => void>;
 }
 
 export interface AiStreamEvent {
