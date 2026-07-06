@@ -1,8 +1,7 @@
 import { useState } from "react";
 import { useStore } from "./store";
-import { useVerticalResize } from "./useVerticalResize";
 
-interface GitPanelProps {
+interface GitTabProps {
   onSelect: (path: string) => void;
   onPublish: () => void;
 }
@@ -22,7 +21,8 @@ function compareUrl(remote: string | null, branch: string): string | null {
   return `${base}/compare/${branch}?expand=1`;
 }
 
-export function GitPanel({ onSelect, onPublish }: GitPanelProps) {
+/** The git tab's content — the tab bar and sizing live in BottomPanel. */
+export function GitTabContent({ onSelect, onPublish }: GitTabProps) {
   const {
     git,
     gitRemote,
@@ -34,8 +34,6 @@ export function GitPanel({ onSelect, onPublish }: GitPanelProps) {
     setSettingsOpen,
     refreshGit,
   } = useStore();
-  const [open, setOpen] = useState(true);
-  const { height, startResize } = useVerticalResize("okf-editor.git-height", 260);
   const [messageText, setMessageText] = useState("");
   const [signoff, setSignoff] = useState(
     () => localStorage.getItem("okf-editor.git-signoff") === "1",
@@ -54,162 +52,142 @@ export function GitPanel({ onSelect, onPublish }: GitPanelProps) {
   };
 
   return (
-    <section className="git-panel">
-      {open && (
-        <div
-          className="section-resizer"
-          onMouseDown={startResize}
-          title="Drag to resize"
-        />
-      )}
-      <button className="problems-header" onClick={() => setOpen(!open)}>
-        <BranchIcon />
-        <span className="git-branch">{git.branch || "(no branch)"}</span>
-        {git.ahead > 0 && <span className="git-ab">↑{git.ahead}</span>}
-        {git.behind > 0 && <span className="git-ab">↓{git.behind}</span>}
-        {changes.length > 0 && <span className="count">{changes.length}</span>}
-        <span className="chevron">{open ? "▾" : "▸"}</span>
-      </button>
-
-      {open && (
-        <div className="git-body" style={{ height }}>
-          {gitRemote === null ? (
-            <button className="git-publish primary" onClick={onPublish}>
-              Publish to GitHub…
+    <div className="git-body">
+      {gitRemote === null ? (
+        <button className="git-publish primary" onClick={onPublish}>
+          Publish to GitHub…
+        </button>
+      ) : (
+        <div className="git-actions">
+          <button
+            disabled={
+              gitBusy ||
+              (git.ahead === 0 && git.behind === 0 && changes.length === 0)
+            }
+            onClick={() => void syncRemote()}
+            title="Pull, then push"
+          >
+            {gitBusy ? "Syncing…" : "Sync"}
+          </button>
+          {branchInput === null ? (
+            <button onClick={() => setBranchInput("")} title="New branch">
+              ⎇ branch
             </button>
           ) : (
-            <div className="git-actions">
-              <button
-                disabled={gitBusy || (git.ahead === 0 && git.behind === 0 && changes.length === 0)}
-                onClick={() => void syncRemote()}
-                title="Pull, then push"
-              >
-                {gitBusy ? "Syncing…" : "Sync"}
-              </button>
-              {branchInput === null ? (
-                <button onClick={() => setBranchInput("")} title="New branch">
-                  ⎇ branch
-                </button>
-              ) : (
-                <input
-                  autoFocus
-                  className="git-branch-input"
-                  value={branchInput}
-                  placeholder="branch name"
-                  onChange={(e) => setBranchInput(e.target.value)}
-                  onBlur={() => setBranchInput(null)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter" && branchInput.trim() !== "") {
-                      void createBranch(branchInput.trim());
-                      setBranchInput(null);
-                    } else if (e.key === "Escape") {
-                      setBranchInput(null);
-                    }
-                  }}
-                />
-              )}
-              {prUrl !== null && (
-                <a href={prUrl} target="_blank" rel="noreferrer" className="git-pr">
-                  Open PR ↗
-                </a>
-              )}
-              <button
-                onClick={() => void refreshGit()}
-                title="Refresh status"
-                className="git-refresh"
-              >
-                ⟳
-              </button>
-            </div>
+            <input
+              autoFocus
+              className="git-branch-input"
+              value={branchInput}
+              placeholder="branch name"
+              onChange={(e) => setBranchInput(e.target.value)}
+              onBlur={() => setBranchInput(null)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && branchInput.trim() !== "") {
+                  void createBranch(branchInput.trim());
+                  setBranchInput(null);
+                } else if (e.key === "Escape") {
+                  setBranchInput(null);
+                }
+              }}
+            />
           )}
-
-          {changes.length > 0 && (
-            <ul className="git-changes">
-              {changes.map((change) => (
-                <li key={change.path}>
-                  <button
-                    onClick={() =>
-                      change.path.endsWith(".md") ? onSelect(change.path) : undefined
-                    }
-                    title={change.path}
-                  >
-                    <span className={`git-badge b-${badgeFor(change.status)}`}>
-                      {badgeFor(change.status)}
-                    </span>
-                    <span className="git-change-path">{change.path}</span>
-                  </button>
-                </li>
-              ))}
-            </ul>
+          {prUrl !== null && (
+            <a href={prUrl} target="_blank" rel="noreferrer" className="git-pr">
+              Open PR ↗
+            </a>
           )}
-
-          {changes.length > 0 && (
-            <div className="git-commit">
-              <textarea
-                value={messageText}
-                rows={2}
-                placeholder="Commit message…"
-                onChange={(e) => setMessageText(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" && (e.metaKey || e.ctrlKey) && canCommit) {
-                    e.preventDefault();
-                    void doCommit();
-                  }
-                }}
-              />
-              <div className="git-commit-row">
-                <label className="git-signoff">
-                  <input
-                    type="checkbox"
-                    checked={signoff}
-                    onChange={(e) => {
-                      setSignoff(e.target.checked);
-                      localStorage.setItem(
-                        "okf-editor.git-signoff",
-                        e.target.checked ? "1" : "0",
-                      );
-                    }}
-                  />
-                  sign-off (DCO)
-                </label>
-                <button
-                  className="primary"
-                  disabled={!canCommit}
-                  onClick={() => void doCommit()}
-                >
-                  Commit
-                </button>
-              </div>
-            </div>
-          )}
-
-          {changes.length === 0 && git.ahead === 0 && git.behind === 0 && (
-            <p className="git-clean">Everything committed and in sync.</p>
-          )}
-
-          {gitError !== null && (
-            <p className="git-error">
-              {gitError}
-              {authFailed && (
-                <>
-                  {" "}
-                  <button
-                    className="link-button"
-                    onClick={() => setSettingsOpen(true)}
-                  >
-                    Update your GitHub token
-                  </button>
-                </>
-              )}
-            </p>
-          )}
+          <button
+            onClick={() => void refreshGit()}
+            title="Refresh status"
+            className="git-refresh"
+          >
+            ⟳
+          </button>
         </div>
       )}
-    </section>
+
+      {changes.length > 0 && (
+        <ul className="git-changes">
+          {changes.map((change) => (
+            <li key={change.path}>
+              <button
+                onClick={() =>
+                  change.path.endsWith(".md") ? onSelect(change.path) : undefined
+                }
+                title={change.path}
+              >
+                <span className={`git-badge b-${badgeFor(change.status)}`}>
+                  {badgeFor(change.status)}
+                </span>
+                <span className="git-change-path">{change.path}</span>
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+
+      {changes.length > 0 && (
+        <div className="git-commit">
+          <textarea
+            value={messageText}
+            rows={2}
+            placeholder="Commit message…"
+            onChange={(e) => setMessageText(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && (e.metaKey || e.ctrlKey) && canCommit) {
+                e.preventDefault();
+                void doCommit();
+              }
+            }}
+          />
+          <div className="git-commit-row">
+            <label className="git-signoff">
+              <input
+                type="checkbox"
+                checked={signoff}
+                onChange={(e) => {
+                  setSignoff(e.target.checked);
+                  localStorage.setItem(
+                    "okf-editor.git-signoff",
+                    e.target.checked ? "1" : "0",
+                  );
+                }}
+              />
+              sign-off (DCO)
+            </label>
+            <button
+              className="primary"
+              disabled={!canCommit}
+              onClick={() => void doCommit()}
+            >
+              Commit
+            </button>
+          </div>
+        </div>
+      )}
+
+      {changes.length === 0 && git.ahead === 0 && git.behind === 0 && (
+        <p className="git-clean">Everything committed and in sync.</p>
+      )}
+
+      {gitError !== null && (
+        <p className="git-error">
+          {gitError}
+          {authFailed && (
+            <>
+              {" "}
+              <button className="link-button" onClick={() => setSettingsOpen(true)}>
+                Update your GitHub token
+              </button>
+            </>
+          )}
+        </p>
+      )}
+    </div>
   );
 }
 
-function BranchIcon() {
+export function BranchIcon() {
   return (
     <svg className="tree-icon" viewBox="0 0 16 16" aria-hidden="true">
       <path
@@ -219,6 +197,22 @@ function BranchIcon() {
         d="M4.5 3.5v6m0 0c0 2 1.5 3 3.5 3h1.5m-5-9a1.5 1.5 0 1 0 0-.01M4.5 12.5a1.5 1.5 0 1 0 0 .01M11 12.5a1.5 1.5 0 1 0 .01 0M11 5v3"
       />
       <circle cx="11" cy="4" r="1.5" fill="none" stroke="currentColor" strokeWidth="1.3" />
+    </svg>
+  );
+}
+
+export function WarnIcon() {
+  return (
+    <svg className="tree-icon" viewBox="0 0 16 16" aria-hidden="true">
+      <path
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.3"
+        strokeLinejoin="round"
+        d="M8 2.5 14 13H2L8 2.5Z"
+      />
+      <path stroke="currentColor" strokeWidth="1.3" d="M8 6.5V9.5" />
+      <circle cx="8" cy="11.4" r="0.4" fill="currentColor" stroke="currentColor" />
     </svg>
   );
 }

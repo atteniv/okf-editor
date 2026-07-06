@@ -12,7 +12,7 @@ import { ChatPanel, SparkleIcon } from "./ChatPanel";
 import { Editor } from "./Editor";
 import { FileOpDialogs, type FileOp } from "./FileOpDialogs";
 import { FileTree } from "./FileTree";
-import { badgeFor, GitPanel } from "./GitPanel";
+import { badgeFor, BranchIcon, GitTabContent, WarnIcon } from "./GitPanel";
 import { PublishDialog } from "./PublishDialog";
 import { FrontmatterForm } from "./FrontmatterForm";
 import { QuickOpen } from "./QuickOpen";
@@ -340,12 +340,10 @@ export function BundleView() {
           )}
         </nav>
 
-        <GitPanel
+        <BottomPanel
+          problems={problems}
           onSelect={(path) => void selectDoc(path)}
           onPublish={() => setPublishing(true)}
-        />
-        <ProblemsPanel
-          problems={problems}
           onJump={jumpToProblem}
           onFix={applyQuickFix}
         />
@@ -521,25 +519,49 @@ export function BundleView() {
   );
 }
 
-function ProblemsPanel({
+type PanelTab = "git" | "problems";
+
+function BottomPanel({
   problems,
+  onSelect,
+  onPublish,
   onJump,
   onFix,
 }: {
   problems: Map<string, Diagnostic[]>;
+  onSelect: (path: string) => void;
+  onPublish: () => void;
   onJump: (path: string, diagnostic: Diagnostic) => void;
   onFix: (fix: QuickFix) => void;
 }) {
-  const [open, setOpen] = useState(false);
-  const { height, startResize } = useVerticalResize(
-    "okf-editor.problems-height",
-    240,
+  const git = useStore((s) => s.git);
+  const [tab, setTab] = useState<PanelTab>(
+    () => (localStorage.getItem("okf-editor.panel-tab") as PanelTab) ?? "git",
   );
-  const total = [...problems.values()].reduce((n, d) => n + d.length, 0);
-  if (total === 0) return null;
+  const [open, setOpen] = useState(true);
+  const { height, startResize } = useVerticalResize(
+    "okf-editor.panel-height",
+    280,
+  );
+
+  const gitAvailable = git !== null && git.is_repo;
+  const problemCount = [...problems.values()].reduce((n, d) => n + d.length, 0);
+  if (!gitAvailable && problemCount === 0) return null;
+
+  const active: PanelTab = tab === "git" && !gitAvailable ? "problems" : tab;
+
+  const pick = (next: PanelTab) => {
+    if (next === active) {
+      setOpen(!open); // VS Code behavior: re-click collapses the panel
+      return;
+    }
+    setTab(next);
+    localStorage.setItem("okf-editor.panel-tab", next);
+    setOpen(true);
+  };
 
   return (
-    <section className="problems">
+    <section className="bottom-panel">
       {open && (
         <div
           className="section-resizer"
@@ -547,40 +569,72 @@ function ProblemsPanel({
           title="Drag to resize"
         />
       )}
-      <button className="problems-header" onClick={() => setOpen(!open)}>
-        Problems <span className="count">{total}</span>
-        <span className="chevron">{open ? "▾" : "▸"}</span>
-      </button>
+      <div className="panel-tabs">
+        {gitAvailable && (
+          <button
+            className={active === "git" && open ? "selected" : ""}
+            onClick={() => pick("git")}
+            title={`Branch ${git.branch}`}
+          >
+            <BranchIcon />
+            <span className="panel-tab-label">{git.branch || "git"}</span>
+            {git.changes.length > 0 && (
+              <span className="count">{git.changes.length}</span>
+            )}
+            {git.ahead > 0 && <span className="git-ab">↑{git.ahead}</span>}
+            {git.behind > 0 && <span className="git-ab">↓{git.behind}</span>}
+          </button>
+        )}
+        <button
+          className={active === "problems" && open ? "selected" : ""}
+          onClick={() => pick("problems")}
+          title="Lint findings"
+        >
+          <WarnIcon />
+          <span className="panel-tab-label">Problems</span>
+          {problemCount > 0 && <span className="count">{problemCount}</span>}
+        </button>
+      </div>
+
       {open && (
-        <ul className="problems-list" style={{ height }}>
-          {[...problems.entries()].map(([path, diagnostics]) => (
-            <li key={path}>
-              <span className="problem-path">{path}</span>
-              <ul>
-                {diagnostics.map((d, i) => (
-                  <li key={i} className={`problem-row ${d.severity}`}>
-                    <button
-                      className="problem-jump"
-                      title="Jump to problem"
-                      onClick={() => onJump(path, d)}
-                    >
-                      {d.message}
-                    </button>
-                    {d.fix !== undefined && (
-                      <button
-                        className="problem-fix"
-                        title="Create the missing document"
-                        onClick={() => onFix(d.fix!)}
-                      >
-                        Create
-                      </button>
-                    )}
-                  </li>
-                ))}
-              </ul>
-            </li>
-          ))}
-        </ul>
+        <div className="panel-body" style={{ height }}>
+          {active === "git" ? (
+            <GitTabContent onSelect={onSelect} onPublish={onPublish} />
+          ) : (
+            <ul className="problems-list">
+              {problemCount === 0 && (
+                <li className="git-clean">No lint findings.</li>
+              )}
+              {[...problems.entries()].map(([path, diagnostics]) => (
+                <li key={path}>
+                  <span className="problem-path">{path}</span>
+                  <ul>
+                    {diagnostics.map((d, i) => (
+                      <li key={i} className={`problem-row ${d.severity}`}>
+                        <button
+                          className="problem-jump"
+                          title="Jump to problem"
+                          onClick={() => onJump(path, d)}
+                        >
+                          {d.message}
+                        </button>
+                        {d.fix !== undefined && (
+                          <button
+                            className="problem-fix"
+                            title="Create the missing document"
+                            onClick={() => onFix(d.fix!)}
+                          >
+                            Create
+                          </button>
+                        )}
+                      </li>
+                    ))}
+                  </ul>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
       )}
     </section>
   );

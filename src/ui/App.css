@@ -516,18 +516,62 @@ body.resizing-v {
   vertical-align: middle;
 }
 
-/* ---- Git panel ---- */
+/* ---- Bottom panel (git / problems tabs) ---- */
 
-.git-panel {
+.bottom-panel {
   border-top: 1px solid var(--border);
-  padding-top: 0.25rem;
   font-size: 0.8rem;
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
 }
 
-.git-branch {
+.panel-tabs {
+  display: flex;
+  gap: 0.25rem;
+  padding: 0.3rem 0.5rem;
+}
+
+.panel-tabs button {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.25rem 0.55rem;
+  border-radius: 5px;
+  font-size: 0.75rem;
+  color: var(--muted);
+}
+
+.panel-tabs button:hover {
+  background: var(--border);
+}
+
+.panel-tabs button.selected {
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+  color: inherit;
+}
+
+.panel-tab-label {
   font-family: ui-monospace, monospace;
-  text-transform: none;
-  letter-spacing: 0;
+}
+
+.panel-tabs .count {
+  background: var(--border);
+  border-radius: 999px;
+  padding: 0 0.4rem;
+  font-size: 0.68rem;
+}
+
+.panel-body {
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+}
+
+.panel-body > * {
+  flex: 1;
+  min-height: 0;
 }
 
 .git-ab {
