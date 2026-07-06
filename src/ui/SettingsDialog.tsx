@@ -180,8 +180,17 @@ function AiSection({ onChanged }: { onChanged: () => void }) {
     platform
       .aiVerify()
       .then((info) => {
-        setKeyInfo(info.label !== null ? `key “${info.label}” valid` : "key valid");
-        setFailure(null);
+        const label = info.label !== null ? `key “${info.label}” valid` : "key valid";
+        const spend =
+          info.limit !== null
+            ? ` — $${(info.usage ?? 0).toFixed(2)} of $${info.limit.toFixed(2)} key limit used`
+            : "";
+        setKeyInfo(label + spend);
+        setFailure(
+          info.limit !== null && (info.usage ?? 0) >= info.limit
+            ? "This key's own spending cap is exhausted (separate from account credits) — raise it on openrouter.ai/keys."
+            : null,
+        );
       })
       .catch((err: unknown) => {
         setKeyInfo(null);
