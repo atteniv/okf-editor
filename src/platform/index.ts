@@ -64,12 +64,18 @@ export interface Platform {
   gitClone(url: string, dest: string): Promise<void>;
   /** git init -b main (creates the directory). */
   gitInit(dest: string): Promise<void>;
+  gitRemoteUrl(root: string): Promise<string | null>;
+  gitSetRemote(root: string, url: string): Promise<void>;
 
   // --- GitHub REST (token from keychain; webview never sees it) ---
   githubVerify(): Promise<{ login: string; name: string | null }>;
   githubListRepos(): Promise<
     { full_name: string; clone_url: string; private: boolean }[]
   >;
+  githubCreateRepo(
+    name: string,
+    isPrivate: boolean,
+  ): Promise<{ full_name: string; clone_url: string; private: boolean }>;
 }
 
 export interface GitFileChange {

@@ -89,8 +89,11 @@ pub fn run() {
             git::git_create_branch,
             git::git_clone,
             git::git_init,
+            git::git_remote_url,
+            git::git_set_remote,
             github::github_verify,
-            github::github_list_repos
+            github::github_list_repos,
+            github::github_create_repo
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

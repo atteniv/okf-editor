@@ -12,6 +12,8 @@ import { ChatPanel, SparkleIcon } from "./ChatPanel";
 import { Editor } from "./Editor";
 import { FileOpDialogs, type FileOp } from "./FileOpDialogs";
 import { FileTree } from "./FileTree";
+import { badgeFor, GitPanel } from "./GitPanel";
+import { PublishDialog } from "./PublishDialog";
 import { FrontmatterForm } from "./FrontmatterForm";
 import { QuickOpen } from "./QuickOpen";
 import { useStore, type ViewMode } from "./store";
@@ -98,6 +100,17 @@ export function BundleView() {
   } | null>(null);
   const aiReady = useStore((s) => s.aiReady);
   const setSettingsOpen = useStore((s) => s.setSettingsOpen);
+  const git = useStore((s) => s.git);
+  const [publishing, setPublishing] = useState(false);
+
+  // path → status-letter badge for the tree.
+  const gitBadges = useMemo(() => {
+    const badges = new Map<string, string>();
+    for (const change of git?.changes ?? []) {
+      badges.set(change.path, badgeFor(change.status));
+    }
+    return badges;
+  }, [git]);
 
   // Keyboard shortcuts: Cmd/Ctrl+S save, Cmd/Ctrl+N new doc, Cmd/Ctrl+P open.
   const saveNow = useStore((s) => s.saveNow);
@@ -291,6 +304,7 @@ export function BundleView() {
               selectedPath={selectedPath}
               problems={problems}
               problemDirs={problemDirs}
+              gitBadges={gitBadges}
               onSelect={(path) => void selectDoc(path)}
               onFileOp={setFileOp}
             />
@@ -325,6 +339,10 @@ export function BundleView() {
           )}
         </nav>
 
+        <GitPanel
+          onSelect={(path) => void selectDoc(path)}
+          onPublish={() => setPublishing(true)}
+        />
         <ProblemsPanel
           problems={problems}
           onJump={jumpToProblem}
@@ -357,6 +375,7 @@ export function BundleView() {
           onClose={() => setQuickOpen(false)}
         />
       )}
+      {publishing && <PublishDialog onClose={() => setPublishing(false)} />}
 
       <section className="doc-pane">
         {selected && selectedPath !== null && draft !== null && split !== null ? (

@@ -220,7 +220,9 @@ pub fn git_pull(root: String) -> Result<(), AppError> {
 #[tauri::command]
 pub fn git_push(root: String, branch: Option<String>) -> Result<(), AppError> {
     let mut cmd = git_base(Some(&root));
-    cmd.args(["push", "origin"]);
+    // -u so the first push of a new repo/branch sets upstream tracking
+    // (harmless on subsequent pushes).
+    cmd.args(["push", "-u", "origin"]);
     match branch {
         Some(branch) => {
             cmd.arg(branch);
@@ -231,6 +233,34 @@ pub fn git_push(root: String, branch: Option<String>) -> Result<(), AppError> {
     }
     with_credentials(&mut cmd)?;
     run(cmd, "push")?;
+    Ok(())
+}
+
+/// The origin remote URL, if one is configured.
+#[tauri::command]
+pub fn git_remote_url(root: String) -> Result<Option<String>, AppError> {
+    let mut cmd = git_base(Some(&root));
+    cmd.args(["remote", "get-url", "origin"]);
+    match cmd.output() {
+        Ok(output) if output.status.success() => Ok(Some(
+            String::from_utf8_lossy(&output.stdout).trim().to_string(),
+        )),
+        Ok(_) => Ok(None), // no origin configured
+        Err(e) => Err(AppError::from(e)),
+    }
+}
+
+/// Point origin at `url` (add or update).
+#[tauri::command]
+pub fn git_set_remote(root: String, url: String) -> Result<(), AppError> {
+    let existing = git_remote_url(root.clone())?;
+    let mut cmd = git_base(Some(&root));
+    if existing.is_some() {
+        cmd.args(["remote", "set-url", "origin", "--", &url]);
+    } else {
+        cmd.args(["remote", "add", "origin", "--", &url]);
+    }
+    run(cmd, "remote")?;
     Ok(())
 }
 
@@ -383,6 +413,24 @@ mod tests {
         sh(&b_path, &["config", "user.email", "t@example.com"]);
         git_pull(b_path.to_string_lossy().into_owned()).unwrap();
         assert!(b_path.join("second.md").exists());
+    }
+
+    #[test]
+    fn remote_url_roundtrip_and_absence() {
+        let dir = init_repo();
+        let root = dir.path().to_string_lossy().into_owned();
+        assert_eq!(git_remote_url(root.clone()).unwrap(), None);
+        git_set_remote(root.clone(), "https://example.com/a/b.git".into()).unwrap();
+        assert_eq!(
+            git_remote_url(root.clone()).unwrap().as_deref(),
+            Some("https://example.com/a/b.git")
+        );
+        // set-url path (origin already exists)
+        git_set_remote(root.clone(), "https://example.com/c/d.git".into()).unwrap();
+        assert_eq!(
+            git_remote_url(root).unwrap().as_deref(),
+            Some("https://example.com/c/d.git")
+        );
     }
 
     #[test]

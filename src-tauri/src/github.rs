@@ -74,6 +74,55 @@ pub struct RepoInfo {
     pub private: bool,
 }
 
+/// Create a repository under the authenticated user. Fine-grained tokens
+/// scoped to a single repo CANNOT do this (needs Administration: write or
+/// classic `repo` scope) — the 403/404 is classified so the UI can fall
+/// back to connect-an-existing-repo (DESIGN §5).
+#[tauri::command]
+pub async fn github_create_repo(name: String, private: bool) -> Result<RepoInfo, AppError> {
+    let token = require_token()?;
+    let body = serde_json::json!({
+        "name": name,
+        "private": private,
+        "auto_init": false,
+    });
+    let response = reqwest::Client::new()
+        .post(format!("{API}/user/repos"))
+        .bearer_auth(&token)
+        .header("User-Agent", "okf-editor")
+        .header("Accept", "application/vnd.github+json")
+        .header("X-GitHub-Api-Version", "2022-11-28")
+        .json(&body)
+        .send()
+        .await
+        .map_err(net_err)?;
+    if response.status() == 401 || response.status() == 403 || response.status() == 404 {
+        return Err(AppError {
+            code: ErrorCode::AuthFailed,
+            message: "This token cannot create repositories (fine-grained tokens need Administration: write; classic tokens need the repo scope)".into(),
+        });
+    }
+    if response.status() == 422 {
+        let detail = response.text().await.unwrap_or_default();
+        return Err(AppError {
+            code: ErrorCode::Io,
+            message: format!("GitHub rejected the repository (name taken?): {detail}"),
+        });
+    }
+    if !response.status().is_success() {
+        return Err(AppError {
+            code: ErrorCode::Network,
+            message: format!("GitHub returned {}", response.status()),
+        });
+    }
+    let value: serde_json::Value = response.json().await.map_err(net_err)?;
+    Ok(RepoInfo {
+        full_name: value["full_name"].as_str().unwrap_or_default().to_string(),
+        clone_url: value["clone_url"].as_str().unwrap_or_default().to_string(),
+        private: value["private"].as_bool().unwrap_or(private),
+    })
+}
+
 #[tauri::command]
 pub async fn github_list_repos() -> Result<Vec<RepoInfo>, AppError> {
     let token = require_token()?;

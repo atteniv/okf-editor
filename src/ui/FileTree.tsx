@@ -11,6 +11,8 @@ interface FileTreeProps {
   problems: Map<string, Diagnostic[]>;
   /** Directories with findings somewhere beneath them. */
   problemDirs: Set<string>;
+  /** path → git status letter (M/A/U/D), VS Code-style. */
+  gitBadges: Map<string, string>;
   onSelect: (path: string) => void;
   /** Open a file-operation dialog (new/rename/delete). */
   onFileOp: (op: FileOp) => void;
@@ -28,6 +30,7 @@ export function FileTree({
   selectedPath,
   problems,
   problemDirs,
+  gitBadges,
   onSelect,
   onFileOp,
 }: FileTreeProps) {
@@ -56,6 +59,7 @@ export function FileTree({
     selectedPath,
     problems,
     problemDirs,
+    gitBadges,
     onSelect,
     menuPath,
     setMenuPath,
@@ -80,6 +84,7 @@ interface NodeProps {
   selectedPath: string | null;
   problems: Map<string, Diagnostic[]>;
   problemDirs: Set<string>;
+  gitBadges: Map<string, string>;
   onSelect: (path: string) => void;
   menuPath: string | null;
   setMenuPath: (path: string | null) => void;
@@ -183,6 +188,14 @@ function DirNode({
                     <span className="tree-label">{file.name}</span>
                     {rest.problems.has(file.path) && (
                       <span className="problem-dot" title="Has lint findings" />
+                    )}
+                    {rest.gitBadges.has(file.path) && (
+                      <span
+                        className={`git-badge b-${rest.gitBadges.get(file.path)}`}
+                        title="Uncommitted change"
+                      >
+                        {rest.gitBadges.get(file.path)}
+                      </span>
                     )}
                   </button>
                   <RowMenu

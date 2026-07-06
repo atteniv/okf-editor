@@ -76,11 +76,21 @@ export const tauriPlatform: Platform = {
 
   gitInit: (dest) => invoke<void>("git_init", { dest }),
 
+  gitRemoteUrl: (root) => invoke<string | null>("git_remote_url", { root }),
+
+  gitSetRemote: (root, url) => invoke<void>("git_set_remote", { root, url }),
+
   githubVerify: () =>
     invoke<{ login: string; name: string | null }>("github_verify"),
 
   githubListRepos: () =>
     invoke<{ full_name: string; clone_url: string; private: boolean }[]>(
       "github_list_repos",
+    ),
+
+  githubCreateRepo: (name, isPrivate) =>
+    invoke<{ full_name: string; clone_url: string; private: boolean }>(
+      "github_create_repo",
+      { name, private: isPrivate },
     ),
 };
