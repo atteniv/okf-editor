@@ -236,8 +236,8 @@ button {
 }
 
 .tree-icon {
-  width: 13px;
-  height: 13px;
+  width: 12px;
+  height: 12px;
   flex-shrink: 0;
   color: var(--muted);
 }
@@ -283,6 +283,10 @@ button {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.doc-tree {
+  font-size: 0.8125rem; /* 13px — file-explorer scale for both tree views */
 }
 
 .doc-tree h2 {
