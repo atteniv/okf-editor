@@ -8,7 +8,8 @@ import { extractLinks, type OutLink } from "./links";
 
 export interface ScanEntry {
   path: string;
-  content: string;
+  /** Markdown files carry content; other bundle files are path-only. */
+  content: string | null;
 }
 
 export interface DocMeta {
@@ -31,7 +32,7 @@ export interface BundleIndex {
   backlinks: Map<string, string[]>;
 }
 
-export function parseDoc(entry: ScanEntry): DocMeta {
+export function parseDoc(entry: { path: string; content: string }): DocMeta {
   const { frontmatterRaw, body } = splitFrontmatter(entry.content);
   return {
     path: entry.path,
@@ -48,7 +49,8 @@ export function parseDoc(entry: ScanEntry): DocMeta {
 export function buildIndex(entries: ScanEntry[]): BundleIndex {
   const docs = new Map<string, DocMeta>();
   for (const entry of entries) {
-    docs.set(entry.path, parseDoc(entry));
+    if (entry.content === null) continue; // non-markdown: tree-only
+    docs.set(entry.path, parseDoc({ path: entry.path, content: entry.content }));
   }
   return { docs, backlinks: buildBacklinks(docs) };
 }

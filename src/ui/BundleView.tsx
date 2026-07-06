@@ -1,10 +1,12 @@
 import { useMemo, useState } from "react";
 import { groupByType, parseDoc } from "../core/bundle";
+import { buildFileTree, dirsContaining } from "../core/filetree";
 import { splitFrontmatter } from "../core/frontmatter";
 import { lintDoc, type Diagnostic } from "../core/lint";
 import { relativize } from "../core/links";
 import { renderMarkdown } from "../core/markdown";
 import { Editor } from "./Editor";
+import { FileTree } from "./FileTree";
 import { FrontmatterForm } from "./FrontmatterForm";
 import { useStore, type ViewMode } from "./store";
 
@@ -31,12 +33,23 @@ export function BundleView() {
     schema,
     schemaError,
     problems,
+    allFiles,
+    treeMode,
+    setTreeMode,
     onEditBody,
     onEditFrontmatter,
     resolveConflict,
   } = useStore();
   const [showForm, setShowForm] = useState(true);
   const groups = groupByType(docs);
+  const fileTree = useMemo(
+    () => buildFileTree(allFiles, docs),
+    [allFiles, docs],
+  );
+  const problemDirs = useMemo(
+    () => dirsContaining(problems.keys()),
+    [problems],
+  );
   const selected = selectedPath !== null ? docs.get(selectedPath) : undefined;
   const split = draft !== null ? splitFrontmatter(draft) : null;
 
@@ -68,31 +81,62 @@ export function BundleView() {
           <span className="bundle-name" title={root ?? ""}>
             {root?.split("/").at(-1)}
           </span>
+          <div className="tree-toggle">
+            <button
+              className={treeMode === "folder" ? "selected" : ""}
+              onClick={() => setTreeMode("folder")}
+              title="Folder view"
+            >
+              Files
+            </button>
+            <button
+              className={treeMode === "type" ? "selected" : ""}
+              onClick={() => setTreeMode("type")}
+              title="Group by type"
+            >
+              Types
+            </button>
+          </div>
         </header>
         <nav className="doc-tree">
-          {[...groups.entries()].map(([type, group]) => (
-            <section key={type || UNTYPED_LABEL}>
-              <h2>
-                {type || UNTYPED_LABEL} <span className="count">{group.length}</span>
-              </h2>
-              <ul>
-                {group.map((doc) => (
-                  <li key={doc.path}>
-                    <button
-                      className={doc.path === selectedPath ? "selected" : ""}
-                      onClick={() => void selectDoc(doc.path)}
-                      title={doc.path}
-                    >
-                      {doc.title}
-                      {problems.has(doc.path) && (
-                        <span className="problem-dot" title="Has lint findings" />
-                      )}
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            </section>
-          ))}
+          {treeMode === "folder" ? (
+            <FileTree
+              tree={fileTree}
+              rootName={root?.split("/").at(-1) ?? "bundle"}
+              selectedPath={selectedPath}
+              problems={problems}
+              problemDirs={problemDirs}
+              onSelect={(path) => void selectDoc(path)}
+            />
+          ) : (
+            [...groups.entries()].map(([type, group]) => (
+              <section key={type || UNTYPED_LABEL}>
+                <h2>
+                  {type || UNTYPED_LABEL}{" "}
+                  <span className="count">{group.length}</span>
+                </h2>
+                <ul>
+                  {group.map((doc) => (
+                    <li key={doc.path}>
+                      <button
+                        className={doc.path === selectedPath ? "selected" : ""}
+                        onClick={() => void selectDoc(doc.path)}
+                        title={doc.path}
+                      >
+                        {doc.title}
+                        {problems.has(doc.path) && (
+                          <span
+                            className="problem-dot"
+                            title="Has lint findings"
+                          />
+                        )}
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              </section>
+            ))
+          )}
         </nav>
 
         <ProblemsPanel

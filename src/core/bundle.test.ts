@@ -27,10 +27,13 @@ function loadFixture(): ScanEntry[] {
 describe("buildIndex on the fixture bundle", () => {
   const index = buildIndex(loadFixture());
 
-  it("indexes all markdown docs", () => {
+  it("indexes all markdown docs, at any depth", () => {
     expect([...index.docs.keys()]).toEqual([
       "guides/onboarding.md",
       "index.md",
+      "policies/facilities/index.md",
+      "policies/hr/index.md",
+      "policies/index.md",
       "policies/remote-work.md",
     ]);
   });

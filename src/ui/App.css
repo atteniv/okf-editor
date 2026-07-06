@@ -103,6 +103,107 @@ button {
   font-weight: 600;
 }
 
+.tree-toggle {
+  margin-left: auto;
+  display: flex;
+  gap: 0.15rem;
+}
+
+.tree-toggle button {
+  font-size: 0.7rem;
+  font-weight: normal;
+  padding: 0.15rem 0.45rem;
+  border-radius: 4px;
+  color: var(--muted);
+}
+
+.tree-toggle button:hover {
+  background: var(--border);
+}
+
+.tree-toggle button.selected {
+  background: var(--accent);
+  color: white;
+}
+
+/* ---- Folder tree ---- */
+/* Selectors are .sidebar-scoped: the tree lives inside .doc-tree, whose
+   generic `.doc-tree ul` reset would otherwise cancel the indents. */
+
+.sidebar .file-tree,
+.sidebar .file-tree ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+/* Each nesting level: clear indent + a guide line so depth is unmistakable. */
+.sidebar .file-tree ul {
+  margin-left: 1.1rem;
+  padding-left: 0.4rem;
+  border-left: 1px solid var(--border);
+}
+
+.sidebar .tree-dir,
+.sidebar .tree-file {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  width: 100%;
+  text-align: left;
+  padding: 0.22rem 0.4rem;
+  border-radius: 4px;
+  white-space: nowrap;
+}
+
+.sidebar .tree-dir .chevron {
+  font-size: 0.75rem;
+  width: 0.7rem;
+  color: var(--muted);
+  flex-shrink: 0;
+  line-height: 1;
+}
+
+/* Files have no chevron — a spacer keeps their icons aligned with folders. */
+.sidebar .tree-file {
+  padding-left: calc(0.4rem + 0.7rem + 0.35rem);
+}
+
+.tree-icon {
+  width: 13px;
+  height: 13px;
+  flex-shrink: 0;
+  color: var(--muted);
+}
+
+.sidebar .tree-file.selected .tree-icon {
+  color: white;
+}
+
+.sidebar .tree-file-inert {
+  color: var(--muted);
+  cursor: default;
+}
+
+.sidebar .tree-file-inert:hover {
+  background: none;
+}
+
+.sidebar .tree-dir:hover,
+.sidebar .tree-file:hover {
+  background: var(--border);
+}
+
+.sidebar .tree-file.selected {
+  background: var(--accent);
+  color: white;
+}
+
+.tree-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 .sidebar header button {
   padding: 0.15rem 0.4rem;
   border-radius: 4px;

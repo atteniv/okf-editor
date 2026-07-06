@@ -31,17 +31,28 @@ function saveRecents(recents: string[]) {
 }
 
 export type ViewMode = "edit" | "split" | "preview";
+export type TreeMode = "folder" | "type";
+
+const TREE_MODE_KEY = "okf-editor.tree-mode";
+
+function loadTreeMode(): TreeMode {
+  return localStorage.getItem(TREE_MODE_KEY) === "type" ? "type" : "folder";
+}
 
 interface AppState {
   view: "start" | "bundle";
   root: string | null;
   docs: Map<string, DocMeta>;
+  /** Every scanned bundle file (docs and non-docs), for the folder tree. */
+  allFiles: string[];
   backlinks: Map<string, string[]>;
   selectedPath: string | null;
   recents: string[];
   error: string | null;
 
   viewMode: ViewMode;
+  /** Sidebar layout: file-manager folders (default) or grouped by type. */
+  treeMode: TreeMode;
   /** Editor text for the selected doc; authoritative while dirty. */
   draft: string | null;
   dirty: boolean;
@@ -59,6 +70,7 @@ interface AppState {
   selectDoc(path: string): Promise<void>;
   closeBundle(): Promise<void>;
   setViewMode(mode: ViewMode): void;
+  setTreeMode(mode: TreeMode): void;
 
   onEdit(text: string): void;
   /** Replace only the body, keeping the draft's frontmatter. */
@@ -108,13 +120,13 @@ export const useStore = create<AppState>((set, get) => {
     const state = get();
     if (event.root !== state.root) return;
     const docs = new Map(state.docs);
+    const files = new Set(state.allFiles);
     let selectedChangedOnDisk = false;
 
     for (const path of event.paths) {
       if (path === CONFIG_FILENAME) {
         // Project config changed: reload the schema; it is not a doc.
         await loadSchema(event.root);
-        continue;
       }
       let content: string | null;
       try {
@@ -122,6 +134,9 @@ export const useStore = create<AppState>((set, get) => {
       } catch {
         content = null; // deleted or unreadable
       }
+      if (content === null) files.delete(path);
+      else files.add(path);
+      if (path === CONFIG_FILENAME) continue;
       if (path === state.selectedPath) {
         // Never clobber the open doc from here — decide below.
         if (content !== null && content !== state.draft) {
@@ -136,6 +151,7 @@ export const useStore = create<AppState>((set, get) => {
 
     set({
       docs,
+      allFiles: [...files].sort(),
       backlinks: buildBacklinks(docs),
       problems: lintBundle(docs, get().schema),
     });
@@ -153,11 +169,13 @@ export const useStore = create<AppState>((set, get) => {
     view: "start",
     root: null,
     docs: new Map(),
+    allFiles: [],
     backlinks: new Map(),
     selectedPath: null,
     recents: loadRecents(),
     error: null,
     viewMode: "split",
+    treeMode: loadTreeMode(),
     draft: null,
     dirty: false,
     conflict: false,
@@ -190,6 +208,7 @@ export const useStore = create<AppState>((set, get) => {
           view: "bundle",
           root,
           docs,
+          allFiles: entries.map((e) => e.path),
           backlinks,
           selectedPath: null,
           recents,
@@ -230,6 +249,7 @@ export const useStore = create<AppState>((set, get) => {
         view: "start",
         root: null,
         docs: new Map(),
+        allFiles: [],
         backlinks: new Map(),
         selectedPath: null,
         draft: null,
@@ -239,6 +259,11 @@ export const useStore = create<AppState>((set, get) => {
     },
 
     setViewMode: (mode) => set({ viewMode: mode }),
+
+    setTreeMode: (mode) => {
+      localStorage.setItem(TREE_MODE_KEY, mode);
+      set({ treeMode: mode });
+    },
 
     onEdit: (text) => {
       set({ draft: text, dirty: true });
