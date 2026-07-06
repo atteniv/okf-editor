@@ -1092,6 +1092,12 @@ button {
   margin: 0.25rem 0 0.5rem;
 }
 
+.dialog-error {
+  font-size: 0.8rem;
+  color: #dc2626;
+  margin: 0.25rem 0 0.5rem;
+}
+
 .dialog-actions {
   display: flex;
   justify-content: flex-end;

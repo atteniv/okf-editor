@@ -57,3 +57,33 @@ pub fn secret_delete(name: String) -> Result<(), AppError> {
 pub fn secret_exists(name: String) -> Result<bool, AppError> {
     Ok(get(&name)?.is_some())
 }
+
+// Keychain round-trip against the real platform store. macOS-only: CI's
+// Linux runners have no Secret Service, and this exercises the exact code
+// path the app uses on the primary dev platform.
+#[cfg(all(test, target_os = "macos"))]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn set_get_delete_round_trip() {
+        let name = "openrouter-api-key";
+        // Preserve any real value the developer has stored.
+        let previous = get(name).unwrap();
+
+        secret_set(name.into(), "test-secret-value".into()).unwrap();
+        assert!(secret_exists(name.into()).unwrap());
+        assert_eq!(get(name).unwrap().as_deref(), Some("test-secret-value"));
+        secret_delete(name.into()).unwrap();
+        assert!(!secret_exists(name.into()).unwrap());
+
+        if let Some(value) = previous {
+            secret_set(name.into(), value).unwrap();
+        }
+    }
+
+    #[test]
+    fn rejects_unknown_secret_names() {
+        assert!(secret_set("arbitrary-name".into(), "x".into()).is_err());
+    }
+}

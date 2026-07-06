@@ -92,31 +92,65 @@ interface AiSettingsProps {
   onChanged: () => void;
 }
 
+function describe(err: unknown): string {
+  if (err instanceof Error) return err.message;
+  const detail = (err as { message?: string } | null)?.message;
+  return detail ?? String(err);
+}
+
 export function AiSettings({ onClose, onChanged }: AiSettingsProps) {
   const [hasKey, setHasKey] = useState(false);
   const [keyInput, setKeyInput] = useState("");
   const [model, setModel] = useState(loadModel());
   const [models, setModels] = useState<{ id: string; name: string }[]>([]);
   const [status, setStatus] = useState<string | null>(null);
+  const [failure, setFailure] = useState<string | null>(null);
+
+  const loadModels = () => {
+    platform
+      .aiModels()
+      .then((list) => {
+        setModels(list);
+        if (list.length === 0) setFailure("Model list came back empty.");
+      })
+      .catch((err: unknown) =>
+        setFailure(`Could not load the model list: ${describe(err)}`),
+      );
+  };
 
   useEffect(() => {
-    void platform.secretExists(OPENROUTER_KEY_NAME).then(setHasKey);
-    platform.aiModels().then(setModels).catch(() => setModels([]));
+    platform
+      .secretExists(OPENROUTER_KEY_NAME)
+      .then(setHasKey)
+      .catch((err: unknown) => setFailure(`Keychain check failed: ${describe(err)}`));
+    loadModels();
   }, []);
 
   const saveKey = async () => {
     const value = keyInput.trim();
     if (value === "") return;
-    await platform.secretSet(OPENROUTER_KEY_NAME, value);
+    setFailure(null);
+    try {
+      await platform.secretSet(OPENROUTER_KEY_NAME, value);
+    } catch (err) {
+      setFailure(`Could not save the key: ${describe(err)}`);
+      return;
+    }
     setKeyInput("");
     setHasKey(true);
     setStatus("Key saved to your OS keychain.");
-    platform.aiModels().then(setModels).catch(() => {});
+    loadModels();
     onChanged();
   };
 
   const clearKey = async () => {
-    await platform.secretDelete(OPENROUTER_KEY_NAME);
+    setFailure(null);
+    try {
+      await platform.secretDelete(OPENROUTER_KEY_NAME);
+    } catch (err) {
+      setFailure(`Could not remove the key: ${describe(err)}`);
+      return;
+    }
     setHasKey(false);
     setStatus("Key removed.");
     onChanged();
@@ -165,6 +199,7 @@ export function AiSettings({ onClose, onChanged }: AiSettingsProps) {
         />
 
         {status !== null && <p className="dialog-hint">{status}</p>}
+        {failure !== null && <p className="dialog-error">{failure}</p>}
 
         <div className="dialog-actions">
           <button onClick={onClose}>Close</button>
