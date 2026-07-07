@@ -34,11 +34,15 @@ function App() {
       const href = anchor.getAttribute("href") ?? "";
       e.preventDefault();
       if (/^https?:\/\//i.test(href)) {
-        void platform.openUrl(href);
+        platform.openUrl(href).catch((err: unknown) => {
+          console.error("openUrl failed", href, err);
+        });
       }
     };
-    document.addEventListener("click", onClick);
-    return () => document.removeEventListener("click", onClick);
+    // Capture phase: dialogs stopPropagation() on bubble to avoid
+    // closing themselves, which would otherwise eat link clicks.
+    document.addEventListener("click", onClick, true);
+    return () => document.removeEventListener("click", onClick, true);
   }, []);
 
   return (
