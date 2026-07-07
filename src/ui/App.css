@@ -1759,6 +1759,32 @@ body.resizing-v {
   margin: 0.25rem 0 0.5rem;
 }
 
+.dialog-steps {
+  font-size: 0.8rem;
+  color: var(--muted);
+  margin: 0.25rem 0 0.6rem;
+}
+
+.dialog-steps summary {
+  cursor: pointer;
+  color: var(--accent);
+}
+
+.dialog-steps ol {
+  margin: 0.4rem 0 0;
+  padding-left: 1.2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  line-height: 1.45;
+}
+
+.dialog-steps code {
+  background: var(--border);
+  border-radius: 3px;
+  padding: 0 0.25em;
+}
+
 .dialog-actions {
   display: flex;
   justify-content: flex-end;
