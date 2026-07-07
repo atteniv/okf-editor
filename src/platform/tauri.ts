@@ -2,6 +2,7 @@ import { getVersion } from "@tauri-apps/api/app";
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import { open } from "@tauri-apps/plugin-dialog";
+import { openUrl } from "@tauri-apps/plugin-opener";
 import type { ScanEntry } from "../core/bundle";
 import type { AiStreamEvent, GitStatus, Platform } from "./index";
 
@@ -57,6 +58,8 @@ export const tauriPlatform: Platform = {
     listen<AiStreamEvent>("okf://ai-stream", (event) => handler(event.payload)),
 
   onOpenSettings: (handler) => listen("okf://open-settings", () => handler()),
+
+  openUrl: (url) => openUrl(url),
 
   gitDetect: () => invoke<{ version: string } | null>("git_detect"),
 

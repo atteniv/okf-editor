@@ -53,6 +53,8 @@ export interface Platform {
   ): Promise<() => void>;
   /** Fires when the native Settings… menu item is chosen. */
   onOpenSettings(handler: () => void): Promise<() => void>;
+  /** Open a URL in the system browser (webview anchors don't). */
+  openUrl(url: string): Promise<void>;
 
   // --- Git (system git via Rust; token via askpass, never argv/URL) ---
   gitDetect(): Promise<{ version: string } | null>;

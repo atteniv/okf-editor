@@ -24,6 +24,23 @@ function App() {
     };
   }, [setSettingsOpen]);
 
+  // Webview anchors can't open tabs: route external links through the OS
+  // browser, and stop any other href from navigating the app away
+  // (markdown-preview links included).
+  useEffect(() => {
+    const onClick = (e: MouseEvent) => {
+      const anchor = (e.target as HTMLElement).closest?.("a[href]");
+      if (!(anchor instanceof HTMLAnchorElement)) return;
+      const href = anchor.getAttribute("href") ?? "";
+      e.preventDefault();
+      if (/^https?:\/\//i.test(href)) {
+        void platform.openUrl(href);
+      }
+    };
+    document.addEventListener("click", onClick);
+    return () => document.removeEventListener("click", onClick);
+  }, []);
+
   return (
     <>
       {view === "bundle" ? <BundleView /> : <StartScreen />}
