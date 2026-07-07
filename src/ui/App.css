@@ -640,6 +640,18 @@ body.resizing-v {
   margin-left: auto;
 }
 
+.git-branch-select {
+  font: inherit;
+  font-size: 0.75rem;
+  font-family: ui-monospace, monospace;
+  color: inherit;
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 0.1rem 0.3rem;
+  max-width: 10rem;
+}
+
 .git-branch-input {
   font: inherit;
   font-size: 0.75rem;

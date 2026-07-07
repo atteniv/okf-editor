@@ -236,6 +236,66 @@ pub fn git_push(root: String, branch: Option<String>) -> Result<(), AppError> {
     Ok(())
 }
 
+fn ref_exists(root: &str, reference: &str) -> bool {
+    let mut cmd = git_base(Some(root));
+    cmd.args(["show-ref", "--verify", "--quiet", reference]);
+    cmd.output().map(|o| o.status.success()).unwrap_or(false)
+}
+
+/// The repo's "home" branch, without needing the user to know main vs
+/// master: origin's declared default (set on clone) → local main →
+/// local master → the current branch.
+#[tauri::command]
+pub fn git_default_branch(root: String) -> Result<String, AppError> {
+    let mut cmd = git_base(Some(&root));
+    cmd.args(["symbolic-ref", "refs/remotes/origin/HEAD"]);
+    if let Ok(output) = cmd.output() {
+        if output.status.success() {
+            let full = String::from_utf8_lossy(&output.stdout);
+            if let Some(name) = full.trim().strip_prefix("refs/remotes/origin/") {
+                return Ok(name.to_string());
+            }
+        }
+    }
+    if ref_exists(&root, "refs/heads/main") {
+        return Ok("main".into());
+    }
+    if ref_exists(&root, "refs/heads/master") {
+        return Ok("master".into());
+    }
+    Ok(git_status(root)?.branch)
+}
+
+/// Local branch names.
+#[tauri::command]
+pub fn git_list_branches(root: String) -> Result<Vec<String>, AppError> {
+    let mut cmd = git_base(Some(&root));
+    cmd.args(["branch", "--format=%(refname:short)"]);
+    Ok(run(cmd, "branch --list")?
+        .lines()
+        .map(str::trim)
+        .filter(|line| !line.is_empty())
+        .map(str::to_string)
+        .collect())
+}
+
+/// Switch to an existing branch (git refuses if changes would be lost).
+/// Existence is validated first so the bare branch name can't be
+/// misread as a path by checkout.
+#[tauri::command]
+pub fn git_switch_branch(root: String, name: String) -> Result<(), AppError> {
+    if !ref_exists(&root, &format!("refs/heads/{name}")) {
+        return Err(AppError {
+            code: ErrorCode::NotFound,
+            message: format!("no local branch named {name}"),
+        });
+    }
+    let mut cmd = git_base(Some(&root));
+    cmd.args(["checkout", &name]);
+    run(cmd, "checkout")?;
+    Ok(())
+}
+
 /// The origin remote URL, if one is configured.
 #[tauri::command]
 pub fn git_remote_url(root: String) -> Result<Option<String>, AppError> {
@@ -413,6 +473,60 @@ mod tests {
         sh(&b_path, &["config", "user.email", "t@example.com"]);
         git_pull(b_path.to_string_lossy().into_owned()).unwrap();
         assert!(b_path.join("second.md").exists());
+    }
+
+    #[test]
+    fn default_branch_detection_chain() {
+        // init'd with main
+        let dir = init_repo();
+        let root = dir.path().to_string_lossy().into_owned();
+        assert_eq!(git_default_branch(root.clone()).unwrap(), "main");
+
+        // origin/HEAD wins when present, even over local main
+        sh(
+            dir.path(),
+            &["update-ref", "refs/remotes/origin/trunk", "HEAD"],
+        );
+        sh(
+            dir.path(),
+            &[
+                "symbolic-ref",
+                "refs/remotes/origin/HEAD",
+                "refs/remotes/origin/trunk",
+            ],
+        );
+        assert_eq!(git_default_branch(root).unwrap(), "trunk");
+
+        // master-only repo
+        let old = tempfile::tempdir().unwrap();
+        let old_root = old.path().to_string_lossy().into_owned();
+        {
+            let mut cmd = git_base(Some(&old_root));
+            cmd.args(["init", "-b", "master"]);
+            run(cmd, "init").unwrap();
+        }
+        sh(old.path(), &["config", "user.name", "T"]);
+        sh(old.path(), &["config", "user.email", "t@e.com"]);
+        std::fs::write(old.path().join("a.md"), "x").unwrap();
+        sh(old.path(), &["add", "--all"]);
+        sh(old.path(), &["commit", "-m", "i"]);
+        assert_eq!(git_default_branch(old_root).unwrap(), "master");
+    }
+
+    #[test]
+    fn branch_list_and_switch() {
+        let dir = init_repo();
+        let root = dir.path().to_string_lossy().into_owned();
+        git_create_branch(root.clone(), "topic".into()).unwrap();
+        let branches = git_list_branches(root.clone()).unwrap();
+        assert!(branches.contains(&"main".to_string()));
+        assert!(branches.contains(&"topic".to_string()));
+
+        git_switch_branch(root.clone(), "main".into()).unwrap();
+        assert_eq!(git_status(root.clone()).unwrap().branch, "main");
+
+        let err = git_switch_branch(root, "nope".into()).unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotFound);
     }
 
     #[test]

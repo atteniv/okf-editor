@@ -66,6 +66,10 @@ export interface Platform {
   gitInit(dest: string): Promise<void>;
   gitRemoteUrl(root: string): Promise<string | null>;
   gitSetRemote(root: string, url: string): Promise<void>;
+  /** The repo's home branch (origin/HEAD → main → master → current). */
+  gitDefaultBranch(root: string): Promise<string>;
+  gitListBranches(root: string): Promise<string[]>;
+  gitSwitchBranch(root: string, name: string): Promise<void>;
 
   // --- GitHub REST (token from keychain; webview never sees it) ---
   githubVerify(): Promise<{ login: string; name: string | null }>;

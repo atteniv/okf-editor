@@ -80,6 +80,13 @@ export const tauriPlatform: Platform = {
 
   gitSetRemote: (root, url) => invoke<void>("git_set_remote", { root, url }),
 
+  gitDefaultBranch: (root) => invoke<string>("git_default_branch", { root }),
+
+  gitListBranches: (root) => invoke<string[]>("git_list_branches", { root }),
+
+  gitSwitchBranch: (root, name) =>
+    invoke<void>("git_switch_branch", { root, name }),
+
   githubVerify: () =>
     invoke<{ login: string; name: string | null }>("github_verify"),
 

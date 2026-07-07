@@ -263,7 +263,17 @@ git_create_branch(root, name)
   app, which answers from the keychain. Nothing persists in `.git/config`.
 - Pull-before-push; a conflicted pull returns a structured error the UI turns
   into "resolve in your own tools, then retry" guidance.
-- `git2` (libgit2) is a later swap behind the same command signatures.
+- **System git is a stated prerequisite** (decided 2026-07-06): the audience
+  is markdown-comfortable, not necessarily developer — but installing git is
+  a one-time step the README owns, and system git buys full fidelity with
+  the user's config/credential setup for zero implementation burden. The
+  planned `git2` (libgit2) swap — whose only purpose was removing that
+  prerequisite — is **dropped**.
+- Scope boundary: the app is NOT a git client. In: status/badges, stage-all
+  commit (+DCO), sync (pull→push), branch create/switch with a
+  default-branch homing affordance, clone/init/publish. Out, permanently:
+  diffs, history browsing, merge-resolution UI, rebase/stash, partial
+  staging, multi-remote, SSH keys. Exotic states → "use your git tools."
 - **Considered and rejected: isomorphic-git** (JS git in the webview). It has
   no fs where it runs — every object/index op would bridge the Tauri IPC
   boundary (git does thousands of small fs ops per command), and push auth

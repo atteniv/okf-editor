@@ -91,6 +91,9 @@ pub fn run() {
             git::git_init,
             git::git_remote_url,
             git::git_set_remote,
+            git::git_default_branch,
+            git::git_list_branches,
+            git::git_switch_branch,
             github::github_verify,
             github::github_list_repos,
             github::github_create_repo

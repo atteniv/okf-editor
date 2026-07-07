@@ -82,8 +82,11 @@ interface AppState {
   /** Git state for the open bundle (null until loaded). */
   git: GitStatus | null;
   gitRemote: string | null;
+  /** The repo's home branch — main/master/whatever origin declares. */
+  gitDefaultBranch: string | null;
   gitBusy: boolean;
   gitError: string | null;
+  switchBranch(name: string): Promise<boolean>;
   refreshGit(): Promise<void>;
   /** Stage everything and commit. Resolves true on success. */
   commitAll(message: string, signoff: boolean): Promise<boolean>;
@@ -241,13 +244,14 @@ export const useStore = create<AppState>((set, get) => {
 
     git: null,
     gitRemote: null,
+    gitDefaultBranch: null,
     gitBusy: false,
     gitError: null,
 
     refreshGit: async () => {
       const { root } = get();
       if (root === null) {
-        set({ git: null, gitRemote: null });
+        set({ git: null, gitRemote: null, gitDefaultBranch: null });
         return;
       }
       try {
@@ -255,10 +259,30 @@ export const useStore = create<AppState>((set, get) => {
           platform.gitStatus(root),
           platform.gitRemoteUrl(root),
         ]);
-        set({ git, gitRemote });
+        const gitDefaultBranch = git.is_repo
+          ? await platform.gitDefaultBranch(root)
+          : null;
+        set({ git, gitRemote, gitDefaultBranch });
       } catch (err) {
         set({ gitError: message(err) });
       }
+    },
+
+    switchBranch: async (name) => {
+      const state = get();
+      if (state.root === null) return false;
+      if (state.dirty) await state.saveNow();
+      set({ gitError: null });
+      try {
+        await platform.gitSwitchBranch(state.root, name);
+      } catch (err) {
+        set({ gitError: message(err) });
+        await get().refreshGit();
+        return false;
+      }
+      // Branch content may differ — rescan the bundle like a fresh open.
+      await get().openBundle(state.root);
+      return true;
     },
 
     commitAll: async (commitMessage, signoff) => {

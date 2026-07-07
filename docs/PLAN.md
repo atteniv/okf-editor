@@ -188,7 +188,7 @@ inbound mention (newsletters, socials, OKF community) crediting Atteniv.
 **Internal floor:** Atteniv's own OKF bundle authored and maintained in the app,
 feeding the Nexus Vision CTA pipeline (proposal §11).
 
-**Outcomes:** *Grow* (signals strong → budget Phase-3 items: graph view, git2,
+**Outcomes:** *Grow* (signals strong → budget Phase-3 items: graph view (shipped early as the bundle overview),
 workspaces) · *Steward* (moderate → maintenance mode: triage + fixes, no new
 features — the expected case) · *Sunset* (weak → archive gracefully: README
 notice, source stays up; the internal dogfood value is retained either way).

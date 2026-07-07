@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { tauriPlatform as platform } from "../platform";
 import { useStore } from "./store";
 
 interface GitTabProps {
@@ -24,13 +25,16 @@ function compareUrl(remote: string | null, branch: string): string | null {
 /** The git tab's content — the tab bar and sizing live in BottomPanel. */
 export function GitTabContent({ onSelect, onPublish }: GitTabProps) {
   const {
+    root,
     git,
     gitRemote,
+    gitDefaultBranch,
     gitBusy,
     gitError,
     commitAll,
     syncRemote,
     createBranch,
+    switchBranch,
     setSettingsOpen,
     refreshGit,
   } = useStore();
@@ -39,6 +43,14 @@ export function GitTabContent({ onSelect, onPublish }: GitTabProps) {
     () => localStorage.getItem("okf-editor.git-signoff") === "1",
   );
   const [branchInput, setBranchInput] = useState<string | null>(null);
+  const [branches, setBranches] = useState<string[]>([]);
+
+  const branch = git?.branch ?? "";
+  useEffect(() => {
+    if (root !== null && git?.is_repo === true) {
+      platform.gitListBranches(root).then(setBranches).catch(() => setBranches([]));
+    }
+  }, [root, branch, git?.is_repo]);
 
   if (git === null || !git.is_repo) return null;
 
@@ -69,6 +81,35 @@ export function GitTabContent({ onSelect, onPublish }: GitTabProps) {
           >
             {gitBusy ? "Syncing…" : "Sync"}
           </button>
+          {branches.length > 1 && (
+            <select
+              className="git-branch-select"
+              value={git.branch}
+              disabled={changes.length > 0 || gitBusy}
+              title={
+                changes.length > 0
+                  ? "Commit your changes before switching branches"
+                  : "Switch branch"
+              }
+              onChange={(e) => void switchBranch(e.target.value)}
+            >
+              {branches.map((b) => (
+                <option key={b} value={b}>
+                  {b}
+                </option>
+              ))}
+            </select>
+          )}
+          {gitDefaultBranch !== null &&
+            git.branch !== gitDefaultBranch &&
+            changes.length === 0 && (
+              <button
+                onClick={() => void switchBranch(gitDefaultBranch)}
+                title={`Switch back to ${gitDefaultBranch}`}
+              >
+                ↩ {gitDefaultBranch}
+              </button>
+            )}
           {branchInput === null ? (
             <button onClick={() => setBranchInput("")} title="New branch">
               ⎇ branch
