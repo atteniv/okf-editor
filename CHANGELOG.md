@@ -18,3 +18,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - AI assistance (AI-1): bring-your-own-key OpenRouter integration — generate
   document content on creation and a document-grounded chat panel. The key is
   stored in the OS keychain; requests never leave the app's native core.
+- GitHub syncing (M2): clone or publish a bundle, tree/panel change badges,
+  and a trunk-only save flow — "Save Changes / Commit" commits and uploads,
+  "Pull Updates from GitHub" reports what it did (an "up to date" note, or a
+  dialog listing the files it changed), and overlapping edits get a guided
+  resolution dialog (keep mine / use GitHub's / merge with AI).

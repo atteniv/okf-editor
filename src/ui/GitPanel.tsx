@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useStore } from "./store";
 import { ConflictDialog } from "./ConflictDialog";
+import { PullResultDialog } from "./PullResultDialog";
 
 interface GitTabProps {
   onSelect: (path: string) => void;
@@ -28,6 +29,7 @@ export function GitTabContent({ onSelect, onPublish }: GitTabProps) {
     gitBusy,
     gitError,
     gitConflicts,
+    pullNotice,
     commitAll,
     pullUpdates,
     switchBranch,
@@ -160,6 +162,8 @@ export function GitTabContent({ onSelect, onPublish }: GitTabProps) {
         </div>
       )}
 
+      {pullNotice !== null && <p className="git-notice">✓ {pullNotice}</p>}
+
       {changes.length === 0 && git.ahead === 0 && git.behind === 0 && gitConflicts === null && (
         <p className="git-clean">All changes saved and in sync.</p>
       )}
@@ -179,6 +183,7 @@ export function GitTabContent({ onSelect, onPublish }: GitTabProps) {
       )}
 
       {resolving && <ConflictDialog onClose={() => setResolving(false)} />}
+      <PullResultDialog onSelect={onSelect} />
     </div>
   );
 }

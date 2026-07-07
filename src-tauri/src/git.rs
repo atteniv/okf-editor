@@ -54,6 +54,12 @@ fn ensure_askpass() -> Result<std::path::PathBuf, AppError> {
 /// degrades to "no token": local/public remotes still work, and a remote
 /// that truly needs auth fails with a classified auth error instead.
 fn with_credentials(cmd: &mut Command) -> Result<(), AppError> {
+    // Tests use local bare remotes and must never touch the developer's
+    // real keychain: with a token stored, macOS blocks the (freshly
+    // ad-hoc-signed) test binary on a permission prompt it can't answer.
+    if cfg!(test) {
+        return Ok(());
+    }
     if let Ok(Some(token)) = secrets::get(TOKEN_NAME) {
         let askpass = ensure_askpass()?;
         cmd.env("GIT_ASKPASS", askpass);
@@ -217,13 +223,58 @@ pub fn git_commit(root: String, message: String, signoff: bool) -> Result<(), Ap
     Ok(())
 }
 
+#[derive(Serialize, Debug, PartialEq)]
+pub struct PulledFile {
+    pub path: String,
+    /// Single-letter change kind from `git diff --name-status`:
+    /// M(odified), A(dded), D(eleted), R(enamed), …
+    pub kind: String,
+}
+
+fn head_commit(root: &str) -> Option<String> {
+    let mut cmd = git_base(Some(root));
+    cmd.args(["rev-parse", "HEAD"]);
+    let output = cmd.output().ok()?;
+    if !output.status.success() {
+        return None;
+    }
+    Some(String::from_utf8_lossy(&output.stdout).trim().to_string())
+}
+
+/// What a pull changed locally, so the UI can say "nothing new" or list
+/// the files that were updated. HEAD is compared before/after; a rename
+/// line ("R100\told\tnew") reports the new path.
+fn diff_names(root: &str, old: &str, new: &str) -> Result<Vec<PulledFile>, AppError> {
+    let mut cmd = git_base(Some(root));
+    cmd.args(["diff", "--name-status", &format!("{old}..{new}")]);
+    Ok(run(cmd, "diff")?
+        .lines()
+        .filter_map(|line| {
+            let mut fields = line.split('\t');
+            let kind = fields.next()?.trim();
+            let path = fields.next_back()?.trim();
+            if kind.is_empty() || path.is_empty() {
+                return None;
+            }
+            Some(PulledFile {
+                path: path.to_string(),
+                kind: kind.chars().take(1).collect(),
+            })
+        })
+        .collect())
+}
+
 #[tauri::command]
-pub fn git_pull(root: String) -> Result<(), AppError> {
+pub fn git_pull(root: String) -> Result<Vec<PulledFile>, AppError> {
+    let before = head_commit(&root);
     let mut cmd = git_base(Some(&root));
     cmd.args(["pull", "--no-rebase"]);
     with_credentials(&mut cmd)?;
     run(cmd, "pull")?;
-    Ok(())
+    match (before, head_commit(&root)) {
+        (Some(before), Some(after)) if before != after => diff_names(&root, &before, &after),
+        _ => Ok(Vec::new()),
+    }
 }
 
 #[tauri::command]
@@ -530,8 +581,19 @@ mod tests {
         git_push(a.path().to_string_lossy().into_owned(), Some("main".into())).unwrap();
         sh(&b_path, &["config", "user.name", "Test"]);
         sh(&b_path, &["config", "user.email", "t@example.com"]);
-        git_pull(b_path.to_string_lossy().into_owned()).unwrap();
+        let pulled = git_pull(b_path.to_string_lossy().into_owned()).unwrap();
         assert!(b_path.join("second.md").exists());
+        assert_eq!(
+            pulled,
+            vec![PulledFile {
+                path: "second.md".into(),
+                kind: "A".into(),
+            }]
+        );
+
+        // Nothing new on the remote → an empty pull reports no files.
+        let pulled = git_pull(b_path.to_string_lossy().into_owned()).unwrap();
+        assert!(pulled.is_empty());
     }
 
     #[test]

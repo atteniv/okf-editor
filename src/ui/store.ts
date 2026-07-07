@@ -11,7 +11,11 @@ import {
   parseSchemaConfig,
   type SchemaConfig,
 } from "../core/schema";
-import { tauriPlatform as platform, type GitStatus } from "../platform";
+import {
+  tauriPlatform as platform,
+  type GitStatus,
+  type PulledFile,
+} from "../platform";
 
 const RECENTS_KEY = "okf-editor.recent-projects";
 const RECENTS_MAX = 8;
@@ -88,6 +92,11 @@ interface AppState {
   gitError: string | null;
   /** Conflicted file paths while a merge is unresolved; null otherwise. */
   gitConflicts: string[] | null;
+  /** Files the last "Pull Updates" changed — non-null opens the dialog. */
+  pullResult: PulledFile[] | null;
+  /** One-line good-news note ("You're up to date"); cleared on next action. */
+  pullNotice: string | null;
+  clearPullResult(): void;
   switchBranch(name: string): Promise<boolean>;
   refreshGit(): Promise<void>;
   /** Save = stage everything, commit, and upload (pull+push) when a
@@ -173,40 +182,44 @@ export const useStore = create<AppState>((set, get) => {
    * gitConflicts for the resolution dialog; connectivity failures degrade
    * to a friendly "will upload later" — the local commit is always safe.
    */
-  async function syncWithRemote(): Promise<"ok" | "conflict" | "offline" | "error"> {
+  async function syncWithRemote(): Promise<{
+    outcome: "ok" | "conflict" | "offline" | "error";
+    pulled: PulledFile[];
+  }> {
     const { root } = get();
-    if (root === null) return "error";
+    if (root === null) return { outcome: "error", pulled: [] };
     const offlineNotice =
       "Saved on this computer — couldn't reach GitHub, so your changes will upload next time.";
+    let pulled: PulledFile[] = [];
     try {
-      await platform.gitPull(root);
+      pulled = await platform.gitPull(root);
     } catch (err) {
       const code = (err as { code?: string } | null)?.code;
       const detail = message(err);
       if (code === "conflict") {
         const files = await platform.gitConflictedFiles(root).catch(() => []);
         set({ gitConflicts: files });
-        return "conflict";
+        return { outcome: "conflict", pulled };
       }
       if (code === "auth_failed") {
         set({ gitError: detail });
-        return "error";
+        return { outcome: "error", pulled };
       }
       // No upstream yet is fine — the push below establishes it (-u).
       if (!/no tracking information|couldn't find remote ref/i.test(detail)) {
         set({ gitError: offlineNotice });
-        return "offline";
+        return { outcome: "offline", pulled };
       }
     }
     try {
       await platform.gitPush(root);
-      return "ok";
+      return { outcome: "ok", pulled };
     } catch (err) {
       const code = (err as { code?: string } | null)?.code;
       set({
         gitError: code === "auth_failed" ? message(err) : offlineNotice,
       });
-      return code === "auth_failed" ? "error" : "offline";
+      return { outcome: code === "auth_failed" ? "error" : "offline", pulled };
     }
   }
 
@@ -297,6 +310,9 @@ export const useStore = create<AppState>((set, get) => {
     gitBusy: false,
     gitError: null,
     gitConflicts: null,
+    pullResult: null,
+    pullNotice: null,
+    clearPullResult: () => set({ pullResult: null }),
 
     refreshGit: async () => {
       const { root } = get();
@@ -339,7 +355,7 @@ export const useStore = create<AppState>((set, get) => {
       const { root, dirty } = get();
       if (root === null) return false;
       if (dirty) await get().saveNow();
-      set({ gitBusy: true, gitError: null });
+      set({ gitBusy: true, gitError: null, pullNotice: null });
       try {
         await platform.gitCommit(root, commitMessage, signoff);
       } catch (err) {
@@ -359,8 +375,15 @@ export const useStore = create<AppState>((set, get) => {
     pullUpdates: async () => {
       const { root } = get();
       if (root === null) return false;
-      set({ gitBusy: true, gitError: null });
-      const outcome = await syncWithRemote();
+      set({ gitBusy: true, gitError: null, pullNotice: null });
+      const { outcome, pulled } = await syncWithRemote();
+      // Say what happened: list what came down (even if the upload half
+      // failed), or confirm there was nothing to get.
+      if (pulled.length > 0) {
+        set({ pullResult: pulled });
+      } else if (outcome === "ok") {
+        set({ pullNotice: "You're up to date — nothing new on GitHub." });
+      }
       set({ gitBusy: false });
       await get().refreshGit();
       return outcome === "ok";

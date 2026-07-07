@@ -60,7 +60,8 @@ export interface Platform {
   gitDetect(): Promise<{ version: string } | null>;
   gitStatus(root: string): Promise<GitStatus>;
   gitCommit(root: string, message: string, signoff: boolean): Promise<void>;
-  gitPull(root: string): Promise<void>;
+  /** Resolves with the files the pull changed locally (empty = up to date). */
+  gitPull(root: string): Promise<PulledFile[]>;
   gitPush(root: string, branch?: string): Promise<void>;
   gitCreateBranch(root: string, name: string): Promise<void>;
   gitClone(url: string, dest: string): Promise<void>;
@@ -94,6 +95,13 @@ export interface GitFileChange {
   path: string;
   /** Porcelain XY code, or "??" for untracked. */
   status: string;
+}
+
+/** A file a pull changed locally. */
+export interface PulledFile {
+  path: string;
+  /** Single-letter diff kind: M(odified), A(dded), D(eleted), R(enamed). */
+  kind: string;
 }
 
 export interface GitStatus {

@@ -756,6 +756,12 @@ body.resizing-v {
   margin: 0;
 }
 
+.git-notice {
+  color: #16a34a;
+  font-size: 0.75rem;
+  margin: 0;
+}
+
 .git-error {
   color: #dc2626;
   font-size: 0.75rem;
@@ -1749,6 +1755,38 @@ body.resizing-v {
 
 .conflict-actions button:disabled {
   opacity: 0.5;
+}
+
+/* ---- Pull-result dialog ---- */
+
+.pull-result-list {
+  list-style: none;
+  margin: 0 0 0.75rem;
+  padding: 0;
+  max-height: 50vh;
+  overflow-y: auto;
+}
+
+.pull-result-list button {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  width: 100%;
+  text-align: left;
+  padding: 0.25rem 0.35rem;
+  border-radius: 4px;
+  font-size: 0.8rem;
+}
+
+.pull-result-list button:hover {
+  background: var(--border);
+}
+
+.pull-kind {
+  margin-left: auto;
+  flex-shrink: 0;
+  color: var(--muted);
+  font-size: 0.72rem;
 }
 
 /* ---- File-op dialogs ---- */
