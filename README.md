@@ -44,6 +44,9 @@ server, no lock-in.
 _Not yet released._ Signed installers for macOS / Windows / Linux will be published on
 the [Releases](https://github.com/atteniv/okf-editor/releases) page.
 
+**Prerequisite:** [git](https://git-scm.com) must be installed to clone and
+publish bundles (editing local folders works without it).
+
 ## Development
 
 See [`CONTRIBUTING.md`](CONTRIBUTING.md) for build/test instructions and how to submit

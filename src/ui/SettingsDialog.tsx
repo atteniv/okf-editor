@@ -124,6 +124,48 @@ function GithubSection({ onChanged }: { onChanged: () => void }) {
         <strong>Contents: read &amp; write</strong> — least privilege. Stored
         in your OS keychain; used only from the app&apos;s native core.
       </p>
+      <details className="dialog-steps">
+        <summary>Show me how to create one</summary>
+        <ol>
+          <li>
+            Open{" "}
+            <a
+              href="https://github.com/settings/personal-access-tokens/new"
+              target="_blank"
+              rel="noreferrer"
+            >
+              github.com/settings/personal-access-tokens/new
+            </a>{" "}
+            (or on GitHub: your profile photo → <strong>Settings</strong> →{" "}
+            <strong>Developer settings</strong> →{" "}
+            <strong>Personal access tokens</strong> →{" "}
+            <strong>Fine-grained tokens</strong> → <strong>Generate new
+            token</strong>).
+          </li>
+          <li>
+            Give it a name (e.g. “OKF Editor”) and an expiration — GitHub
+            requires one; you&apos;ll paste a fresh token here when it
+            expires.
+          </li>
+          <li>
+            Under <strong>Repository access</strong> choose{" "}
+            <strong>Only select repositories</strong> and pick your bundle
+            repository. (To let the app <em>create</em> repositories too,
+            you&apos;d instead need broader Administration access — the app
+            offers a connect-existing-repo path so you don&apos;t have to.)
+          </li>
+          <li>
+            Under <strong>Permissions → Repository permissions</strong>, set{" "}
+            <strong>Contents</strong> to <strong>Read and write</strong>.
+            Nothing else is needed.
+          </li>
+          <li>
+            Click <strong>Generate token</strong>, copy the value that starts
+            with <code>github_pat_</code>, and paste it below. GitHub shows it
+            only once.
+          </li>
+        </ol>
+      </details>
       <label>
         Token{" "}
         {identity !== null && (
@@ -161,6 +203,7 @@ function AiSection({ onChanged }: { onChanged: () => void }) {
   const [model, setModel] = useState(loadModel());
   const [models, setModels] = useState<{ id: string; name: string }[]>([]);
   const [keyInfo, setKeyInfo] = useState<string | null>(null);
+  const [capExhausted, setCapExhausted] = useState(false);
   const [status, setStatus] = useState<string | null>(null);
   const [failure, setFailure] = useState<string | null>(null);
 
@@ -186,14 +229,12 @@ function AiSection({ onChanged }: { onChanged: () => void }) {
             ? ` — $${(info.usage ?? 0).toFixed(2)} of $${info.limit.toFixed(2)} key limit used`
             : "";
         setKeyInfo(label + spend);
-        setFailure(
-          info.limit !== null && (info.usage ?? 0) >= info.limit
-            ? "This key's own spending cap is exhausted (separate from account credits) — raise it on openrouter.ai/keys."
-            : null,
-        );
+        setCapExhausted(info.limit !== null && (info.usage ?? 0) >= info.limit);
+        setFailure(null);
       })
       .catch((err: unknown) => {
         setKeyInfo(null);
+        setCapExhausted(false);
         setFailure(describe(err));
       });
   };
@@ -240,6 +281,7 @@ function AiSection({ onChanged }: { onChanged: () => void }) {
     }
     setHasKey(false);
     setKeyInfo(null);
+    setCapExhausted(false);
     setStatus("Key removed.");
     onChanged();
   };
@@ -256,6 +298,47 @@ function AiSection({ onChanged }: { onChanged: () => void }) {
         core. Using AI sends the relevant document content to OpenRouter
         under your key.
       </p>
+      <details className="dialog-steps">
+        <summary>Show me how to get one</summary>
+        <ol>
+          <li>
+            OpenRouter is one account/key for many AI models (GLM, Claude,
+            GPT, Gemini, …) with pay-as-you-go pricing. Create an account at{" "}
+            <a href="https://openrouter.ai" target="_blank" rel="noreferrer">
+              openrouter.ai
+            </a>{" "}
+            (sign-in with Google or GitHub works).
+          </li>
+          <li>
+            Add credit under{" "}
+            <a
+              href="https://openrouter.ai/settings/credits"
+              target="_blank"
+              rel="noreferrer"
+            >
+              Credits
+            </a>{" "}
+            — even $5–10 goes a long way for document drafting.
+          </li>
+          <li>
+            Go to{" "}
+            <a href="https://openrouter.ai/keys" target="_blank" rel="noreferrer">
+              Keys
+            </a>{" "}
+            → <strong>Create Key</strong>. Name it (e.g. “OKF Editor”). The
+            optional <strong>credit limit</strong> caps what this key alone
+            can spend — useful, but if it runs out the app will tell you.
+          </li>
+          <li>
+            Copy the key (starts with <code>sk-or-</code>) and paste it below
+            — it&apos;s shown only once.
+          </li>
+          <li>
+            Pick a default model underneath — any model id works; the list
+            filters as you type.
+          </li>
+        </ol>
+      </details>
 
       <label>
         API key{" "}
@@ -292,6 +375,20 @@ function AiSection({ onChanged }: { onChanged: () => void }) {
       />
 
       {status !== null && <p className="dialog-hint">{status}</p>}
+      {capExhausted && (
+        <p className="dialog-error">
+          This key&apos;s own spending cap is used up (separate from your
+          account credits). Raise the key&apos;s credit limit on{" "}
+          <a href="https://openrouter.ai/keys" target="_blank" rel="noreferrer">
+            openrouter.ai/keys
+          </a>{" "}
+          — make sure it&apos;s the key shown above — then{" "}
+          <button className="link-button" onClick={verifyKey}>
+            re-check
+          </button>
+          . The numbers are live from OpenRouter.
+        </p>
+      )}
       {failure !== null && <p className="dialog-error">{failure}</p>}
     </section>
   );

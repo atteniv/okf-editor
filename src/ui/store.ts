@@ -11,7 +11,7 @@ import {
   parseSchemaConfig,
   type SchemaConfig,
 } from "../core/schema";
-import { tauriPlatform as platform } from "../platform";
+import { tauriPlatform as platform, type GitStatus } from "../platform";
 
 const RECENTS_KEY = "okf-editor.recent-projects";
 const RECENTS_MAX = 8;
@@ -78,6 +78,23 @@ interface AppState {
   aiReady: boolean;
   setSettingsOpen(open: boolean): void;
   refreshAiStatus(): Promise<void>;
+
+  /** Git state for the open bundle (null until loaded). */
+  git: GitStatus | null;
+  gitRemote: string | null;
+  /** The repo's home branch — main/master/whatever origin declares. */
+  gitDefaultBranch: string | null;
+  gitBusy: boolean;
+  gitError: string | null;
+  switchBranch(name: string): Promise<boolean>;
+  refreshGit(): Promise<void>;
+  /** Stage everything and commit. Resolves true on success. */
+  commitAll(message: string, signoff: boolean): Promise<boolean>;
+  /** Pull then push. Resolves true on success. */
+  syncRemote(): Promise<boolean>;
+  /** Point origin at url and push -u. Resolves true on success. */
+  publishTo(url: string): Promise<boolean>;
+  createBranch(name: string): Promise<boolean>;
 
   openFolder(): Promise<void>;
   openBundle(root: string): Promise<void>;
@@ -192,6 +209,7 @@ export const useStore = create<AppState>((set, get) => {
         if (fresh) set({ draft: fresh.source });
       }
     }
+    void get().refreshGit();
   }
 
   return {
@@ -221,6 +239,127 @@ export const useStore = create<AppState>((set, get) => {
         set({ aiReady: await platform.aiKeyStatus() });
       } catch {
         set({ aiReady: false });
+      }
+    },
+
+    git: null,
+    gitRemote: null,
+    gitDefaultBranch: null,
+    gitBusy: false,
+    gitError: null,
+
+    refreshGit: async () => {
+      const { root } = get();
+      if (root === null) {
+        set({ git: null, gitRemote: null, gitDefaultBranch: null });
+        return;
+      }
+      try {
+        const [git, gitRemote] = await Promise.all([
+          platform.gitStatus(root),
+          platform.gitRemoteUrl(root),
+        ]);
+        const gitDefaultBranch = git.is_repo
+          ? await platform.gitDefaultBranch(root)
+          : null;
+        set({ git, gitRemote, gitDefaultBranch });
+      } catch (err) {
+        set({ gitError: message(err) });
+      }
+    },
+
+    switchBranch: async (name) => {
+      const state = get();
+      if (state.root === null) return false;
+      if (state.dirty) await state.saveNow();
+      set({ gitError: null });
+      try {
+        await platform.gitSwitchBranch(state.root, name);
+      } catch (err) {
+        set({ gitError: message(err) });
+        await get().refreshGit();
+        return false;
+      }
+      // Branch content may differ — rescan the bundle like a fresh open.
+      await get().openBundle(state.root);
+      return true;
+    },
+
+    commitAll: async (commitMessage, signoff) => {
+      const { root, dirty } = get();
+      if (root === null) return false;
+      if (dirty) await get().saveNow();
+      set({ gitBusy: true, gitError: null });
+      try {
+        await platform.gitCommit(root, commitMessage, signoff);
+        return true;
+      } catch (err) {
+        set({ gitError: message(err) });
+        return false;
+      } finally {
+        set({ gitBusy: false });
+        await get().refreshGit();
+      }
+    },
+
+    syncRemote: async () => {
+      const { root, git } = get();
+      if (root === null) return false;
+      set({ gitBusy: true, gitError: null });
+      try {
+        // Pull only when an upstream can exist; a brand-new remote has
+        // nothing to pull and git would error.
+        if ((git?.behind ?? 0) > 0 || (git?.ahead ?? 0) === 0) {
+          try {
+            await platform.gitPull(root);
+          } catch (err) {
+            // No upstream yet is fine — push establishes it (-u).
+            const detail = message(err);
+            if (!/no tracking information|couldn't find remote ref/i.test(detail)) {
+              throw err;
+            }
+          }
+        }
+        await platform.gitPush(root);
+        return true;
+      } catch (err) {
+        set({ gitError: message(err) });
+        return false;
+      } finally {
+        set({ gitBusy: false });
+        await get().refreshGit();
+      }
+    },
+
+    publishTo: async (url) => {
+      const { root } = get();
+      if (root === null) return false;
+      set({ gitBusy: true, gitError: null });
+      try {
+        await platform.gitSetRemote(root, url);
+        await platform.gitPush(root);
+        return true;
+      } catch (err) {
+        set({ gitError: message(err) });
+        return false;
+      } finally {
+        set({ gitBusy: false });
+        await get().refreshGit();
+      }
+    },
+
+    createBranch: async (name) => {
+      const { root } = get();
+      if (root === null) return false;
+      set({ gitError: null });
+      try {
+        await platform.gitCreateBranch(root, name);
+        return true;
+      } catch (err) {
+        set({ gitError: message(err) });
+        return false;
+      } finally {
+        await get().refreshGit();
       }
     },
 
@@ -258,6 +397,7 @@ export const useStore = create<AppState>((set, get) => {
           conflict: false,
           problems: lintBundle(docs, get().schema),
         });
+        void get().refreshGit();
       } catch (err) {
         const message =
           err instanceof Error
@@ -347,6 +487,7 @@ export const useStore = create<AppState>((set, get) => {
           : {}),
         error: null,
       });
+      void get().refreshGit();
     },
 
     createFolder: async (dirPath, name) => {
@@ -413,6 +554,7 @@ export const useStore = create<AppState>((set, get) => {
           : {}),
         error: null,
       });
+      void get().refreshGit();
     },
 
     deleteDoc: async (path) => {
@@ -440,6 +582,7 @@ export const useStore = create<AppState>((set, get) => {
           : {}),
         error: null,
       });
+      void get().refreshGit();
     },
 
     onEdit: (text) => {
@@ -477,6 +620,7 @@ export const useStore = create<AppState>((set, get) => {
           dirty: false,
           error: null,
         });
+        void get().refreshGit();
       } catch (err) {
         const message =
           err instanceof Error

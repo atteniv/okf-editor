@@ -40,18 +40,18 @@ notarization setup) start in M0 precisely so they're off the critical path by M3
 
 Everything here de-risks later milestones; nothing is user-visible.
 
-- [ ] Tauri + React + TS + Vite + pnpm scaffold; app opens a window on
+- [x] Tauri + React + TS + Vite + pnpm scaffold; app opens a window on
       macOS/Windows/Linux (Linux via CI-built AppImage — catches WebKitGTK
       issues on day one, per DESIGN §12)
-- [ ] Repo layout: `src/` (`core/`, `platform/`, `ui/`), `src-tauri/`,
+- [x] Repo layout: `src/` (`core/`, `platform/`, `ui/`), `src-tauri/`,
       `schemas/`, `fixtures/` (sample OKF bundles for tests)
-- [ ] CI: extend existing workflow — frontend lint/typecheck/test/build now
+- [x] CI: extend existing workflow — frontend lint/typecheck/test/build now
       real; add `cargo fmt`/`clippy`/`test`; add `cargo audit`/`pnpm audit`
-- [ ] Fill in CONTRIBUTING.md dev-setup placeholders (currently `<pkg>` stubs)
+- [x] Fill in CONTRIBUTING.md dev-setup placeholders (currently `<pkg>` stubs)
 - [ ] **Start long-lead procurement:** Apple Developer enrollment + Developer ID
       cert; order Windows code-signing cert (can take weeks — the reason this
       is an M0 task)
-- [ ] Collect a fixture corpus: real OKF bundles from the ecosystem
+- [x] Collect a fixture corpus: real OKF bundles from the ecosystem
       (`GoogleCloudPlatform/knowledge-catalog` examples, `superops-team/okf`)
       for schema/lint/round-trip tests
 
@@ -62,17 +62,17 @@ green with real checks; certs in procurement.
 
 The heart of the product; ordered so each week ends with something demoable.
 
-- [ ] **Wk 1 — Bundle model:** Rust `fs.rs` + path guards; scan → parse →
+- [x] **Wk 1 — Bundle model:** Rust `fs.rs` + path guards; scan → parse →
       index (`core/bundle`); doc tree grouped by `type`; open-local-folder flow
-- [ ] **Wk 2 — Editing:** CodeMirror markdown editor; autosave; sanitized live
+- [x] **Wk 2 — Editing:** CodeMirror markdown editor; autosave; sanitized live
       preview; file watcher + external-change conflict banner (DESIGN §7.2)
-- [ ] **Wk 3 — Schema engine:** default schema + `.okf-editor.json` override;
+- [x] **Wk 3 — Schema engine:** default schema + `.okf-editor.json` override;
       frontmatter form (all MVP field kinds); YAML round-trip via document API
       + minimal-diff test suite (DESIGN §6.4 — the hard requirement)
-- [ ] **Wk 4 — Lint + links:** `core/lint` rules with okflint rule IDs + parity
+- [x] **Wk 4 — Lint + links:** `core/lint` rules with okflint rule IDs + parity
       CI job; lint panel + editor gutter; link index + autocomplete +
       broken-link diagnostics; backlink maintenance
-- [ ] **Wk 5 — Templates & polish:** new-doc-from-template per type; rename
+- [x] **Wk 5 — Templates & polish:** new-doc-from-template per type; rename
       with inbound-link rewrite; recent-projects screen; keyboard shortcuts;
       empty/error states
 
@@ -95,13 +95,13 @@ DESIGN §13). Strengthens the brand-play story — an AI-native OKF editor.
 
 ### M2 — Git layer, Phase 1b (3 wks)
 
-- [ ] **Wk 1 — Git plumbing:** `git.rs` (detect/status/commit/pull/push/branch)
+- [x] **Wk 1 — Git plumbing:** `git.rs` (detect/status/commit/pull/push/branch)
       with askpass credential injection (DESIGN §7.3 — token never in
       argv/URL); tests against local bare repos
-- [ ] **Wk 2 — Auth + clone:** keychain storage; connect-GitHub flow with
+- [x] **Wk 2 — Auth + clone:** keychain storage; connect-GitHub flow with
       fine-grained-PAT guidance copy; token verification; clone-by-URL and
       repo-picker; token-expiry re-auth banner (401 path tested end-to-end)
-- [ ] **Wk 3 — Publish UX:** status view — changed-file list + tree badges,
+- [x] **Wk 3 — Publish UX:** status view — changed-file list + tree badges,
       no diff rendering (descoped 2026-07-05: modified-indicators suffice;
       diffs live in the user's git tools); commit (+DCO signoff
       toggle); pull-before-push with structured conflict guidance; branch + PR
@@ -188,7 +188,7 @@ inbound mention (newsletters, socials, OKF community) crediting Atteniv.
 **Internal floor:** Atteniv's own OKF bundle authored and maintained in the app,
 feeding the Nexus Vision CTA pipeline (proposal §11).
 
-**Outcomes:** *Grow* (signals strong → budget Phase-3 items: graph view, git2,
+**Outcomes:** *Grow* (signals strong → budget Phase-3 items: graph view (shipped early as the bundle overview),
 workspaces) · *Steward* (moderate → maintenance mode: triage + fixes, no new
 features — the expected case) · *Sunset* (weak → archive gracefully: README
 notice, source stays up; the internal dogfood value is retained either way).

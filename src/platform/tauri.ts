@@ -2,6 +2,7 @@ import { getVersion } from "@tauri-apps/api/app";
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import { open } from "@tauri-apps/plugin-dialog";
+import { openUrl } from "@tauri-apps/plugin-opener";
 import type { ScanEntry } from "../core/bundle";
 import type { AiStreamEvent, GitStatus, Platform } from "./index";
 
@@ -58,6 +59,8 @@ export const tauriPlatform: Platform = {
 
   onOpenSettings: (handler) => listen("okf://open-settings", () => handler()),
 
+  openUrl: (url) => openUrl(url),
+
   gitDetect: () => invoke<{ version: string } | null>("git_detect"),
 
   gitStatus: (root) => invoke<GitStatus>("git_status", { root }),
@@ -76,11 +79,28 @@ export const tauriPlatform: Platform = {
 
   gitInit: (dest) => invoke<void>("git_init", { dest }),
 
+  gitRemoteUrl: (root) => invoke<string | null>("git_remote_url", { root }),
+
+  gitSetRemote: (root, url) => invoke<void>("git_set_remote", { root, url }),
+
+  gitDefaultBranch: (root) => invoke<string>("git_default_branch", { root }),
+
+  gitListBranches: (root) => invoke<string[]>("git_list_branches", { root }),
+
+  gitSwitchBranch: (root, name) =>
+    invoke<void>("git_switch_branch", { root, name }),
+
   githubVerify: () =>
     invoke<{ login: string; name: string | null }>("github_verify"),
 
   githubListRepos: () =>
     invoke<{ full_name: string; clone_url: string; private: boolean }[]>(
       "github_list_repos",
+    ),
+
+  githubCreateRepo: (name, isPrivate) =>
+    invoke<{ full_name: string; clone_url: string; private: boolean }>(
+      "github_create_repo",
+      { name, private: isPrivate },
     ),
 };

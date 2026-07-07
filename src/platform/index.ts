@@ -53,6 +53,8 @@ export interface Platform {
   ): Promise<() => void>;
   /** Fires when the native Settings… menu item is chosen. */
   onOpenSettings(handler: () => void): Promise<() => void>;
+  /** Open a URL in the system browser (webview anchors don't). */
+  openUrl(url: string): Promise<void>;
 
   // --- Git (system git via Rust; token via askpass, never argv/URL) ---
   gitDetect(): Promise<{ version: string } | null>;
@@ -64,12 +66,22 @@ export interface Platform {
   gitClone(url: string, dest: string): Promise<void>;
   /** git init -b main (creates the directory). */
   gitInit(dest: string): Promise<void>;
+  gitRemoteUrl(root: string): Promise<string | null>;
+  gitSetRemote(root: string, url: string): Promise<void>;
+  /** The repo's home branch (origin/HEAD → main → master → current). */
+  gitDefaultBranch(root: string): Promise<string>;
+  gitListBranches(root: string): Promise<string[]>;
+  gitSwitchBranch(root: string, name: string): Promise<void>;
 
   // --- GitHub REST (token from keychain; webview never sees it) ---
   githubVerify(): Promise<{ login: string; name: string | null }>;
   githubListRepos(): Promise<
     { full_name: string; clone_url: string; private: boolean }[]
   >;
+  githubCreateRepo(
+    name: string,
+    isPrivate: boolean,
+  ): Promise<{ full_name: string; clone_url: string; private: boolean }>;
 }
 
 export interface GitFileChange {
