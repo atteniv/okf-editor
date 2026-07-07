@@ -77,7 +77,7 @@ export function GitTabContent({ onSelect, onPublish }: GitTabProps) {
               (git.ahead === 0 && git.behind === 0 && changes.length === 0)
             }
             onClick={() => void syncRemote()}
-            title="Pull, then push"
+            title="Gets the latest from GitHub, then uploads your saved changes (pull, then push)"
           >
             {gitBusy ? "Syncing…" : "Sync"}
           </button>
@@ -172,7 +172,7 @@ export function GitTabContent({ onSelect, onPublish }: GitTabProps) {
           <textarea
             value={messageText}
             rows={2}
-            placeholder="Commit message…"
+            placeholder="Describe your changes…"
             onChange={(e) => setMessageText(e.target.value)}
             onKeyDown={(e) => {
               if (e.key === "Enter" && (e.metaKey || e.ctrlKey) && canCommit) {
@@ -200,15 +200,16 @@ export function GitTabContent({ onSelect, onPublish }: GitTabProps) {
               className="primary"
               disabled={!canCommit}
               onClick={() => void doCommit()}
+              title="Creates a git commit (⌘Enter)"
             >
-              Commit
+              Save Changes / Commit
             </button>
           </div>
         </div>
       )}
 
       {changes.length === 0 && git.ahead === 0 && git.behind === 0 && (
-        <p className="git-clean">Everything committed and in sync.</p>
+        <p className="git-clean">All changes saved and in sync.</p>
       )}
 
       {gitError !== null && (
