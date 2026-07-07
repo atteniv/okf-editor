@@ -72,6 +72,12 @@ export interface Platform {
   gitDefaultBranch(root: string): Promise<string>;
   gitListBranches(root: string): Promise<string[]>;
   gitSwitchBranch(root: string, name: string): Promise<void>;
+  gitConflictedFiles(root: string): Promise<string[]>;
+  gitConflictVersions(
+    root: string,
+    path: string,
+  ): Promise<{ ours: string | null; theirs: string | null }>;
+  gitMergeAbort(root: string): Promise<void>;
 
   // --- GitHub REST (token from keychain; webview never sees it) ---
   githubVerify(): Promise<{ login: string; name: string | null }>;

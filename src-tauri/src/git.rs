@@ -77,9 +77,18 @@ fn run(mut cmd: Command, action: &str) -> Result<String, AppError> {
         Ok(String::from_utf8_lossy(&output.stdout).into_owned())
     } else {
         let stderr = String::from_utf8_lossy(&output.stderr);
+        let stdout = String::from_utf8_lossy(&output.stdout);
+        // Classify on both streams: merge-conflict notices ("CONFLICT …")
+        // go to stdout, not stderr.
+        let combined = format!("{stderr}\n{stdout}");
+        let detail = if stderr.trim().is_empty() {
+            stdout.trim().to_string()
+        } else {
+            stderr.trim().to_string()
+        };
         Err(AppError {
-            code: classify(&stderr),
-            message: format!("git {action} failed: {}", stderr.trim()),
+            code: classify(&combined),
+            message: format!("git {action} failed: {detail}"),
         })
     }
 }
@@ -293,6 +302,56 @@ pub fn git_switch_branch(root: String, name: String) -> Result<(), AppError> {
     let mut cmd = git_base(Some(&root));
     cmd.args(["checkout", &name]);
     run(cmd, "checkout")?;
+    Ok(())
+}
+
+/// Paths currently in a conflicted (unmerged) state.
+#[tauri::command]
+pub fn git_conflicted_files(root: String) -> Result<Vec<String>, AppError> {
+    let mut cmd = git_base(Some(&root));
+    cmd.args(["diff", "--name-only", "--diff-filter=U"]);
+    Ok(run(cmd, "diff")?
+        .lines()
+        .map(str::trim)
+        .filter(|l| !l.is_empty())
+        .map(str::to_string)
+        .collect())
+}
+
+#[derive(Serialize)]
+pub struct ConflictVersions {
+    /// Our side (what the user had). None if the file didn't exist locally.
+    pub ours: Option<String>,
+    /// Their side (what GitHub has). None if deleted remotely.
+    pub theirs: Option<String>,
+}
+
+fn show_stage(root: &str, stage: u8, path: &str) -> Option<String> {
+    let mut cmd = git_base(Some(root));
+    cmd.args(["show", &format!(":{stage}:{path}")]);
+    match cmd.output() {
+        Ok(output) if output.status.success() => {
+            Some(String::from_utf8_lossy(&output.stdout).into_owned())
+        }
+        _ => None,
+    }
+}
+
+/// Both sides of a conflicted file (index stages 2 and 3).
+#[tauri::command]
+pub fn git_conflict_versions(root: String, path: String) -> Result<ConflictVersions, AppError> {
+    Ok(ConflictVersions {
+        ours: show_stage(&root, 2, &path),
+        theirs: show_stage(&root, 3, &path),
+    })
+}
+
+/// Abort an in-progress merge, restoring the pre-pull state.
+#[tauri::command]
+pub fn git_merge_abort(root: String) -> Result<(), AppError> {
+    let mut cmd = git_base(Some(&root));
+    cmd.args(["merge", "--abort"]);
+    run(cmd, "merge --abort")?;
     Ok(())
 }
 
@@ -527,6 +586,69 @@ mod tests {
 
         let err = git_switch_branch(root, "nope".into()).unwrap_err();
         assert_eq!(err.code, ErrorCode::NotFound);
+    }
+
+    #[test]
+    fn conflict_lifecycle_versions_and_abort() {
+        // Two clones of one bare remote edit the same line.
+        let bare = tempfile::tempdir().unwrap();
+        let mut cmd = git_base(Some(bare.path().to_str().unwrap()));
+        cmd.args(["init", "--bare", "-b", "main"]);
+        run(cmd, "init bare").unwrap();
+
+        let a = init_repo();
+        let a_root = a.path().to_string_lossy().into_owned();
+        sh(
+            a.path(),
+            &["remote", "add", "origin", bare.path().to_str().unwrap()],
+        );
+        git_push(a_root.clone(), Some("main".into())).unwrap();
+
+        let b_parent = tempfile::tempdir().unwrap();
+        let b_path = b_parent.path().join("b");
+        git_clone(
+            bare.path().to_string_lossy().into_owned(),
+            b_path.to_string_lossy().into_owned(),
+        )
+        .unwrap();
+        let b_root = b_path.to_string_lossy().into_owned();
+        sh(&b_path, &["config", "user.name", "B"]);
+        sh(&b_path, &["config", "user.email", "b@e.com"]);
+
+        // B changes and pushes; A changes the same file and pulls → conflict.
+        std::fs::write(b_path.join("index.md"), "# theirs\n").unwrap();
+        git_commit(b_root, "their change".into(), false).unwrap();
+        {
+            let mut cmd = git_base(Some(&b_path.to_string_lossy()));
+            cmd.args(["push", "origin", "main"]);
+            run(cmd, "push").unwrap();
+        }
+        std::fs::write(a.path().join("index.md"), "# ours\n").unwrap();
+        git_commit(a_root.clone(), "our change".into(), false).unwrap();
+
+        let err = git_pull(a_root.clone()).unwrap_err();
+        assert_eq!(err.code, ErrorCode::Conflict);
+
+        let conflicted = git_conflicted_files(a_root.clone()).unwrap();
+        assert_eq!(conflicted, vec!["index.md".to_string()]);
+
+        let versions = git_conflict_versions(a_root.clone(), "index.md".into()).unwrap();
+        assert_eq!(versions.ours.as_deref(), Some("# ours\n"));
+        assert_eq!(versions.theirs.as_deref(), Some("# theirs\n"));
+
+        // Abort restores the pre-pull state (our committed content intact).
+        git_merge_abort(a_root.clone()).unwrap();
+        assert!(git_conflicted_files(a_root.clone()).unwrap().is_empty());
+        assert_eq!(
+            std::fs::read_to_string(a.path().join("index.md")).unwrap(),
+            "# ours\n"
+        );
+
+        // Resolve for real: pull again, choose a resolution, commit clears it.
+        let _ = git_pull(a_root.clone());
+        std::fs::write(a.path().join("index.md"), "# merged\n").unwrap();
+        git_commit(a_root.clone(), "merge updates".into(), false).unwrap();
+        assert!(git_conflicted_files(a_root).unwrap().is_empty());
     }
 
     #[test]

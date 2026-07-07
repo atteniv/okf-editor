@@ -94,6 +94,9 @@ pub fn run() {
             git::git_default_branch,
             git::git_list_branches,
             git::git_switch_branch,
+            git::git_conflicted_files,
+            git::git_conflict_versions,
+            git::git_merge_abort,
             github::github_verify,
             github::github_list_repos,
             github::github_create_repo

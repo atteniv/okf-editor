@@ -90,6 +90,17 @@ export const tauriPlatform: Platform = {
   gitSwitchBranch: (root, name) =>
     invoke<void>("git_switch_branch", { root, name }),
 
+  gitConflictedFiles: (root) =>
+    invoke<string[]>("git_conflicted_files", { root }),
+
+  gitConflictVersions: (root, path) =>
+    invoke<{ ours: string | null; theirs: string | null }>(
+      "git_conflict_versions",
+      { root, path },
+    ),
+
+  gitMergeAbort: (root) => invoke<void>("git_merge_abort", { root }),
+
   githubVerify: () =>
     invoke<{ login: string; name: string | null }>("github_verify"),
 

@@ -1,6 +1,6 @@
-import { useEffect, useState } from "react";
-import { tauriPlatform as platform } from "../platform";
+import { useState } from "react";
 import { useStore } from "./store";
+import { ConflictDialog } from "./ConflictDialog";
 
 interface GitTabProps {
   onSelect: (path: string) => void;
@@ -14,26 +14,22 @@ export function badgeFor(status: string): string {
   return significant.charAt(0) || "M";
 }
 
-/** GitHub compare URL for the current branch, when derivable. */
-function compareUrl(remote: string | null, branch: string): string | null {
-  if (remote === null || branch === "" || branch === "main") return null;
-  const base = remote.replace(/\.git$/, "");
-  if (!base.startsWith("https://")) return null;
-  return `${base}/compare/${branch}?expand=1`;
-}
-
-/** The git tab's content — the tab bar and sizing live in BottomPanel. */
+/**
+ * The git tab, trunk-only by design (DESIGN §7.3): Save commits AND
+ * uploads; Pull Updates brings down teammates' changes; conflicts get the
+ * guided resolution dialog. No branching UI — the one branch affordance
+ * is the "back to main" rescue when a repo arrives on a side branch.
+ */
 export function GitTabContent({ onSelect, onPublish }: GitTabProps) {
   const {
-    root,
     git,
     gitRemote,
     gitDefaultBranch,
     gitBusy,
     gitError,
+    gitConflicts,
     commitAll,
-    syncRemote,
-    createBranch,
+    pullUpdates,
     switchBranch,
     setSettingsOpen,
     refreshGit,
@@ -42,21 +38,12 @@ export function GitTabContent({ onSelect, onPublish }: GitTabProps) {
   const [signoff, setSignoff] = useState(
     () => localStorage.getItem("okf-editor.git-signoff") === "1",
   );
-  const [branchInput, setBranchInput] = useState<string | null>(null);
-  const [branches, setBranches] = useState<string[]>([]);
-
-  const branch = git?.branch ?? "";
-  useEffect(() => {
-    if (root !== null && git?.is_repo === true) {
-      platform.gitListBranches(root).then(setBranches).catch(() => setBranches([]));
-    }
-  }, [root, branch, git?.is_repo]);
+  const [resolving, setResolving] = useState(false);
 
   if (git === null || !git.is_repo) return null;
 
   const changes = git.changes;
   const canCommit = changes.length > 0 && messageText.trim() !== "" && !gitBusy;
-  const prUrl = compareUrl(gitRemote, git.branch);
   const authFailed = gitError !== null && /auth|401|403|credential/i.test(gitError);
 
   const doCommit = async () => {
@@ -72,71 +59,22 @@ export function GitTabContent({ onSelect, onPublish }: GitTabProps) {
       ) : (
         <div className="git-actions">
           <button
-            disabled={
-              gitBusy ||
-              (git.ahead === 0 && git.behind === 0 && changes.length === 0)
-            }
-            onClick={() => void syncRemote()}
-            title="Gets the latest from GitHub, then uploads your saved changes (pull, then push)"
+            disabled={gitBusy || gitConflicts !== null}
+            onClick={() => void pullUpdates()}
+            title="Gets the latest changes from GitHub (and uploads any of yours that are waiting)"
           >
-            {gitBusy ? "Syncing…" : "Sync"}
+            {gitBusy ? "Working…" : "Pull Updates from GitHub"}
           </button>
-          {branches.length > 1 && (
-            <select
-              className="git-branch-select"
-              value={git.branch}
-              disabled={changes.length > 0 || gitBusy}
-              title={
-                changes.length > 0
-                  ? "Commit your changes before switching branches"
-                  : "Switch branch"
-              }
-              onChange={(e) => void switchBranch(e.target.value)}
-            >
-              {branches.map((b) => (
-                <option key={b} value={b}>
-                  {b}
-                </option>
-              ))}
-            </select>
-          )}
           {gitDefaultBranch !== null &&
             git.branch !== gitDefaultBranch &&
             changes.length === 0 && (
               <button
                 onClick={() => void switchBranch(gitDefaultBranch)}
-                title={`Switch back to ${gitDefaultBranch}`}
+                title={`This bundle is on a side branch — switch back to ${gitDefaultBranch}`}
               >
-                ↩ {gitDefaultBranch}
+                ↩ back to {gitDefaultBranch}
               </button>
             )}
-          {branchInput === null ? (
-            <button onClick={() => setBranchInput("")} title="New branch">
-              ⎇ branch
-            </button>
-          ) : (
-            <input
-              autoFocus
-              className="git-branch-input"
-              value={branchInput}
-              placeholder="branch name"
-              onChange={(e) => setBranchInput(e.target.value)}
-              onBlur={() => setBranchInput(null)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" && branchInput.trim() !== "") {
-                  void createBranch(branchInput.trim());
-                  setBranchInput(null);
-                } else if (e.key === "Escape") {
-                  setBranchInput(null);
-                }
-              }}
-            />
-          )}
-          {prUrl !== null && (
-            <a href={prUrl} target="_blank" rel="noreferrer" className="git-pr">
-              Open PR ↗
-            </a>
-          )}
           <button
             onClick={() => void refreshGit()}
             title="Refresh status"
@@ -147,7 +85,17 @@ export function GitTabContent({ onSelect, onPublish }: GitTabProps) {
         </div>
       )}
 
-      {changes.length > 0 && (
+      {gitConflicts !== null && (
+        <div className="conflict-banner">
+          <span>
+            Your changes and GitHub&apos;s overlap in {gitConflicts.length}{" "}
+            {gitConflicts.length === 1 ? "file" : "files"}.
+          </span>
+          <button onClick={() => setResolving(true)}>Resolve…</button>
+        </div>
+      )}
+
+      {changes.length > 0 && gitConflicts === null && (
         <ul className="git-changes">
           {changes.map((change) => (
             <li key={change.path}>
@@ -167,7 +115,7 @@ export function GitTabContent({ onSelect, onPublish }: GitTabProps) {
         </ul>
       )}
 
-      {changes.length > 0 && (
+      {changes.length > 0 && gitConflicts === null && (
         <div className="git-commit">
           <textarea
             value={messageText}
@@ -200,7 +148,11 @@ export function GitTabContent({ onSelect, onPublish }: GitTabProps) {
               className="primary"
               disabled={!canCommit}
               onClick={() => void doCommit()}
-              title="Creates a git commit (⌘Enter)"
+              title={
+                gitRemote !== null
+                  ? "Commits and uploads to GitHub (⌘Enter)"
+                  : "Creates a git commit (⌘Enter)"
+              }
             >
               Save Changes / Commit
             </button>
@@ -208,7 +160,7 @@ export function GitTabContent({ onSelect, onPublish }: GitTabProps) {
         </div>
       )}
 
-      {changes.length === 0 && git.ahead === 0 && git.behind === 0 && (
+      {changes.length === 0 && git.ahead === 0 && git.behind === 0 && gitConflicts === null && (
         <p className="git-clean">All changes saved and in sync.</p>
       )}
 
@@ -225,6 +177,8 @@ export function GitTabContent({ onSelect, onPublish }: GitTabProps) {
           )}
         </p>
       )}
+
+      {resolving && <ConflictDialog onClose={() => setResolving(false)} />}
     </div>
   );
 }

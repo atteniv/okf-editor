@@ -106,6 +106,28 @@ export function parseBundlePlan(text: string): PlannedDoc[] | null {
   return valid.length > 0 ? valid : null;
 }
 
+/** Messages asking the model to merge two conflicting document versions. */
+export function mergeConflictMessages(
+  schema: SchemaConfig,
+  path: string,
+  ours: string,
+  theirs: string,
+): ChatMessage[] {
+  return [
+    { role: "system", content: systemPrompt(schema, null) },
+    {
+      role: "user",
+      content:
+        `The document "${path}" was edited in two places at once and the versions conflict. ` +
+        `Merge them into ONE document that preserves the intent of both — keep additions from ` +
+        `each side, and where the same passage differs, prefer the more complete or more recent-looking wording. ` +
+        `Output ONLY the merged document (frontmatter and body), with no commentary and no code fences.\n\n` +
+        `MY VERSION:\n\`\`\`markdown\n${ours}\n\`\`\`\n\n` +
+        `THE VERSION FROM GITHUB:\n\`\`\`markdown\n${theirs}\n\`\`\``,
+    },
+  ];
+}
+
 /** `@[path]` tokens in a chat message → the docs they reference. */
 export function extractReferences(
   text: string,

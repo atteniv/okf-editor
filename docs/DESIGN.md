@@ -269,11 +269,21 @@ git_create_branch(root, name)
   the user's config/credential setup for zero implementation burden. The
   planned `git2` (libgit2) swap — whose only purpose was removing that
   prerequisite — is **dropped**.
-- Scope boundary: the app is NOT a git client. In: status/badges, stage-all
-  commit (+DCO), sync (pull→push), branch create/switch with a
-  default-branch homing affordance, clone/init/publish. Out, permanently:
-  diffs, history browsing, merge-resolution UI, rebase/stash, partial
-  staging, multi-remote, SSH keys. Exotic states → "use your git tools."
+- Scope boundary: the app is NOT a git client, and the UX is
+  **trunk-only** (decided 2026-07-06 — the audience is business users who
+  know markdown, not git). In: status/badges; "Save Changes / Commit" =
+  stage-all commit (+DCO) **and upload** (pull→push) when a remote exists,
+  degrading gracefully offline ("saved on this computer, uploads later");
+  "Pull Updates from GitHub"; clone/init/publish. Branch UI removed — the
+  plumbing (create/switch/default-branch detection) remains for the one
+  rescue affordance: "↩ back to main" when a repo arrives on a side branch.
+- **Merge conflicts get a guided in-app dialog**, not a terminal: the
+  conflicted files listed, per file *Keep mine / Use GitHub's / Merge with
+  AI* (the model combines both versions; index stages 2/3 supply the
+  sides), Cancel = `merge --abort` restoring the exact pre-pull state.
+  Out, permanently: diffs, history browsing, manual merge editing,
+  rebase/stash, partial staging, multi-remote, SSH keys. Exotic states →
+  "use your git tools."
 - **Considered and rejected: isomorphic-git** (JS git in the webview). It has
   no fs where it runs — every object/index op would bridge the Tauri IPC
   boundary (git does thousands of small fs ops per command), and push auth
