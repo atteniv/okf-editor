@@ -298,6 +298,47 @@ function AiSection({ onChanged }: { onChanged: () => void }) {
         core. Using AI sends the relevant document content to OpenRouter
         under your key.
       </p>
+      <details className="dialog-steps">
+        <summary>Show me how to get one</summary>
+        <ol>
+          <li>
+            OpenRouter is one account/key for many AI models (GLM, Claude,
+            GPT, Gemini, …) with pay-as-you-go pricing. Create an account at{" "}
+            <a href="https://openrouter.ai" target="_blank" rel="noreferrer">
+              openrouter.ai
+            </a>{" "}
+            (sign-in with Google or GitHub works).
+          </li>
+          <li>
+            Add credit under{" "}
+            <a
+              href="https://openrouter.ai/settings/credits"
+              target="_blank"
+              rel="noreferrer"
+            >
+              Credits
+            </a>{" "}
+            — even $5–10 goes a long way for document drafting.
+          </li>
+          <li>
+            Go to{" "}
+            <a href="https://openrouter.ai/keys" target="_blank" rel="noreferrer">
+              Keys
+            </a>{" "}
+            → <strong>Create Key</strong>. Name it (e.g. “OKF Editor”). The
+            optional <strong>credit limit</strong> caps what this key alone
+            can spend — useful, but if it runs out the app will tell you.
+          </li>
+          <li>
+            Copy the key (starts with <code>sk-or-</code>) and paste it below
+            — it&apos;s shown only once.
+          </li>
+          <li>
+            Pick a default model underneath — any model id works; the list
+            filters as you type.
+          </li>
+        </ol>
+      </details>
 
       <label>
         API key{" "}
