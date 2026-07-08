@@ -60,7 +60,8 @@ export interface Platform {
   gitDetect(): Promise<{ version: string } | null>;
   gitStatus(root: string): Promise<GitStatus>;
   gitCommit(root: string, message: string, signoff: boolean): Promise<void>;
-  gitPull(root: string): Promise<void>;
+  /** Resolves with the files the pull changed locally (empty = up to date). */
+  gitPull(root: string): Promise<PulledFile[]>;
   gitPush(root: string, branch?: string): Promise<void>;
   gitCreateBranch(root: string, name: string): Promise<void>;
   gitClone(url: string, dest: string): Promise<void>;
@@ -72,6 +73,12 @@ export interface Platform {
   gitDefaultBranch(root: string): Promise<string>;
   gitListBranches(root: string): Promise<string[]>;
   gitSwitchBranch(root: string, name: string): Promise<void>;
+  gitConflictedFiles(root: string): Promise<string[]>;
+  gitConflictVersions(
+    root: string,
+    path: string,
+  ): Promise<{ ours: string | null; theirs: string | null }>;
+  gitMergeAbort(root: string): Promise<void>;
 
   // --- GitHub REST (token from keychain; webview never sees it) ---
   githubVerify(): Promise<{ login: string; name: string | null }>;
@@ -88,6 +95,13 @@ export interface GitFileChange {
   path: string;
   /** Porcelain XY code, or "??" for untracked. */
   status: string;
+}
+
+/** A file a pull changed locally. */
+export interface PulledFile {
+  path: string;
+  /** Single-letter diff kind: M(odified), A(dded), D(eleted), R(enamed). */
+  kind: string;
 }
 
 export interface GitStatus {

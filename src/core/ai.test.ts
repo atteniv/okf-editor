@@ -4,6 +4,7 @@ import {
   chatMessages,
   extractReferences,
   generateDocMessages,
+  mergeConflictMessages,
   systemPrompt,
 } from "./ai";
 import { DEFAULT_SCHEMA } from "./schema";
@@ -68,6 +69,22 @@ describe("chatMessages", () => {
     expect(messages[0].content).toContain("Policy text.");
     // The open doc appears once (as the open doc), not again as a reference.
     expect(messages[0].content.match(/guides\/a\.md/g)).toHaveLength(1);
+  });
+});
+
+describe("mergeConflictMessages", () => {
+  it("presents both versions and demands document-only output", () => {
+    const messages = mergeConflictMessages(
+      DEFAULT_SCHEMA,
+      "guides/a.md",
+      "# ours\n",
+      "# theirs\n",
+    );
+    const user = messages.at(-1)!.content;
+    expect(user).toContain("guides/a.md");
+    expect(user).toContain("# ours");
+    expect(user).toContain("# theirs");
+    expect(user).toContain("ONLY the merged document");
   });
 });
 

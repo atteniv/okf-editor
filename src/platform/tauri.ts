@@ -4,7 +4,7 @@ import { listen } from "@tauri-apps/api/event";
 import { open } from "@tauri-apps/plugin-dialog";
 import { openUrl } from "@tauri-apps/plugin-opener";
 import type { ScanEntry } from "../core/bundle";
-import type { AiStreamEvent, GitStatus, Platform } from "./index";
+import type { AiStreamEvent, GitStatus, Platform, PulledFile } from "./index";
 
 export const tauriPlatform: Platform = {
   appVersion: () => getVersion(),
@@ -68,7 +68,7 @@ export const tauriPlatform: Platform = {
   gitCommit: (root, message, signoff) =>
     invoke<void>("git_commit", { root, message, signoff }),
 
-  gitPull: (root) => invoke<void>("git_pull", { root }),
+  gitPull: (root) => invoke<PulledFile[]>("git_pull", { root }),
 
   gitPush: (root, branch) => invoke<void>("git_push", { root, branch }),
 
@@ -89,6 +89,17 @@ export const tauriPlatform: Platform = {
 
   gitSwitchBranch: (root, name) =>
     invoke<void>("git_switch_branch", { root, name }),
+
+  gitConflictedFiles: (root) =>
+    invoke<string[]>("git_conflicted_files", { root }),
+
+  gitConflictVersions: (root, path) =>
+    invoke<{ ours: string | null; theirs: string | null }>(
+      "git_conflict_versions",
+      { root, path },
+    ),
+
+  gitMergeAbort: (root) => invoke<void>("git_merge_abort", { root }),
 
   githubVerify: () =>
     invoke<{ login: string; name: string | null }>("github_verify"),
