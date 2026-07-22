@@ -163,7 +163,7 @@ export function parseWebsitePlan(
     typeof candidate.siteSummary !== "string" ||
     !Array.isArray(candidate.sources) ||
     !Array.isArray(candidate.docs) ||
-    candidate.docs.length === 0 ||
+    candidate.docs.length < 4 ||
     candidate.docs.length > 8
   ) {
     return null;

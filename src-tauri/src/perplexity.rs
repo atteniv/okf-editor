@@ -122,7 +122,7 @@ fn plan_schema() -> Value {
                     },
                     "docs": {
                         "type": "array",
-                        "minItems": 1,
+                        "minItems": 4,
                         "maxItems": 8,
                         "items": {
                             "type": "object",

@@ -143,6 +143,20 @@ describe("parseWebsitePlan", () => {
         brief: "Describe the organization.",
         sourceUrls: ["https://example.com/about"],
       },
+      {
+        path: "references/services.md",
+        type: "reference",
+        title: "Services",
+        brief: "Summarize available services.",
+        sourceUrls: ["https://example.com/"],
+      },
+      {
+        path: "guides/getting-started.md",
+        type: "guide",
+        title: "Getting started",
+        brief: "Explain how to get started.",
+        sourceUrls: ["https://example.com/about"],
+      },
     ],
   };
 
@@ -153,19 +167,20 @@ describe("parseWebsitePlan", () => {
   });
 
   it("rejects unsafe paths, unknown types, and off-domain sources", () => {
-    for (const docs of [
-      [{ ...validPlan.docs[0], path: "../escape.md" }],
-      [{ ...validPlan.docs[0], type: "unknown" }],
-      [
-        {
-          ...validPlan.docs[0],
-          sourceUrls: ["https://attacker.example/claim"],
-        },
-      ],
+    for (const invalidIndex of [
+      { ...validPlan.docs[0], path: "../escape.md" },
+      { ...validPlan.docs[0], type: "unknown" },
+      {
+        ...validPlan.docs[0],
+        sourceUrls: ["https://attacker.example/claim"],
+      },
     ]) {
       expect(
         parseWebsitePlan(
-          JSON.stringify({ ...validPlan, docs }),
+          JSON.stringify({
+            ...validPlan,
+            docs: [invalidIndex, ...validPlan.docs.slice(1)],
+          }),
           DEFAULT_SCHEMA,
           "https://example.com",
         ),
@@ -180,7 +195,7 @@ describe("parseWebsitePlan", () => {
     ];
     const docs = validPlan.docs.map((doc, index) => ({
       ...doc,
-      sourceUrls: [sources[index].url],
+      sourceUrls: [sources[index % sources.length].url],
     }));
     expect(
       parseWebsitePlan(
@@ -194,7 +209,14 @@ describe("parseWebsitePlan", () => {
   it("rejects a plan without a root index", () => {
     expect(
       parseWebsitePlan(
-        JSON.stringify({ ...validPlan, docs: validPlan.docs.slice(1) }),
+        JSON.stringify({
+          ...validPlan,
+          docs: validPlan.docs.map((doc, index) =>
+            index === 0
+              ? { ...doc, path: "guides/home.md", type: "guide" }
+              : doc,
+          ),
+        }),
         DEFAULT_SCHEMA,
         "https://example.com",
       ),
