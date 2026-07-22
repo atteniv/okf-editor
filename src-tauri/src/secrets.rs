@@ -10,7 +10,7 @@ use crate::error::{AppError, ErrorCode};
 /// deliberately NO secret_get command: secrets are consumed inside Rust
 /// (AI requests, git auth); the webview only learns whether one exists.
 const SERVICE: &str = "com.atteniv.okf-editor";
-const ALLOWED: &[&str] = &["openrouter-api-key", "github-token"];
+const ALLOWED: &[&str] = &["openrouter-api-key", "github-token", "perplexity-api-key"];
 
 /// Session cache: macOS gates every keychain READ behind a signature-based
 /// ACL check (a password prompt for unsigned dev builds, whose signature

@@ -17,7 +17,7 @@ tasks:
     verify: cd src-tauri && cargo fmt --check && cargo clippy --all-targets -- -D warnings && cargo test
     risk: P0
     security: high
-    status: failing
+    status: passing
     allure:
       severity: critical
       categories: [integration, Security Review]
