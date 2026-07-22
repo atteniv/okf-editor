@@ -8,7 +8,7 @@ tasks:
     verify: pnpm test -- src/core/ai.test.ts
     risk: P0
     security: high
-    status: failing
+    status: passing
     allure:
       severity: critical
       categories: [unit, Security Review]
