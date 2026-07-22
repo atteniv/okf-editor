@@ -26,7 +26,7 @@ tasks:
     verify: pnpm lint && pnpm typecheck
     risk: P1
     security: medium
-    status: failing
+    status: passing
     allure:
       severity: high
       categories: [UI, Security Review]

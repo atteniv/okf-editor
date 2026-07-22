@@ -86,8 +86,10 @@ interface AppState {
   /** App settings dialog (AI key + model). Reachable from every screen. */
   settingsOpen: boolean;
   aiReady: boolean;
+  perplexityReady: boolean;
   setSettingsOpen(open: boolean): void;
   refreshAiStatus(): Promise<void>;
+  refreshPerplexityStatus(): Promise<void>;
 
   /** Git state for the open bundle (null until loaded). */
   git: GitStatus | null;
@@ -303,6 +305,7 @@ export const useStore = create<AppState>((set, get) => {
     problems: new Map(),
     settingsOpen: false,
     aiReady: false,
+    perplexityReady: false,
 
     setSettingsOpen: (open) => set({ settingsOpen: open }),
 
@@ -311,6 +314,14 @@ export const useStore = create<AppState>((set, get) => {
         set({ aiReady: await platform.aiKeyStatus() });
       } catch {
         set({ aiReady: false });
+      }
+    },
+
+    refreshPerplexityStatus: async () => {
+      try {
+        set({ perplexityReady: await platform.perplexityKeyStatus() });
+      } catch {
+        set({ perplexityReady: false });
       }
     },
 

@@ -3,6 +3,7 @@ import { tauriPlatform as platform } from "../platform";
 import { loadModel, OPENROUTER_KEY_NAME, saveModel } from "./aiClient";
 
 const GITHUB_KEY_NAME = "github-token";
+const PERPLEXITY_KEY_NAME = "perplexity-api-key";
 const MAX_VISIBLE = 20;
 
 /** Familiar picks shown before the user types (only ones the catalog has). */
@@ -36,6 +37,8 @@ export function SettingsDialog({ onClose, onChanged }: SettingsDialogProps) {
         <GithubSection onChanged={onChanged} />
         <hr className="settings-divider" />
         <AiSection onChanged={onChanged} />
+        <hr className="settings-divider" />
+        <PerplexitySection onChanged={onChanged} />
         <div className="dialog-actions">
           <button onClick={onClose}>Close</button>
         </div>
@@ -190,6 +193,133 @@ function GithubSection({ onChanged }: { onChanged: () => void }) {
           Save token
         </button>
         {hasToken && <button onClick={() => void clearToken()}>Remove</button>}
+      </div>
+      {status !== null && <p className="dialog-hint">{status}</p>}
+      {failure !== null && <p className="dialog-error">{failure}</p>}
+    </section>
+  );
+}
+
+function PerplexitySection({ onChanged }: { onChanged: () => void }) {
+  const [hasKey, setHasKey] = useState(false);
+  const [keyInput, setKeyInput] = useState("");
+  const [verified, setVerified] = useState(false);
+  const [status, setStatus] = useState<string | null>(null);
+  const [failure, setFailure] = useState<string | null>(null);
+
+  const verifyKey = () => {
+    platform
+      .perplexityVerify()
+      .then(() => {
+        setVerified(true);
+        setFailure(null);
+      })
+      .catch((err: unknown) => {
+        setVerified(false);
+        setFailure(`Key check failed: ${describe(err)}`);
+      });
+  };
+
+  useEffect(() => {
+    platform
+      .secretExists(PERPLEXITY_KEY_NAME)
+      .then((exists) => {
+        setHasKey(exists);
+        if (exists) verifyKey();
+      })
+      .catch((err: unknown) =>
+        setFailure(`Keychain check failed: ${describe(err)}`),
+      );
+    
+  }, []);
+
+  const saveKey = async () => {
+    const value = keyInput.trim();
+    if (value === "") return;
+    setFailure(null);
+    try {
+      await platform.secretSet(PERPLEXITY_KEY_NAME, value);
+    } catch (err) {
+      setFailure(`Could not save the key: ${describe(err)}`);
+      return;
+    }
+    setKeyInput("");
+    setHasKey(true);
+    setStatus("Key saved to your OS keychain.");
+    verifyKey();
+    onChanged();
+  };
+
+  const clearKey = async () => {
+    setFailure(null);
+    try {
+      await platform.secretDelete(PERPLEXITY_KEY_NAME);
+    } catch (err) {
+      setFailure(`Could not remove the key: ${describe(err)}`);
+      return;
+    }
+    setHasKey(false);
+    setVerified(false);
+    setStatus("Key removed.");
+    onChanged();
+  };
+
+  return (
+    <section className="settings-section">
+      <h4>Website research (Perplexity)</h4>
+      <p className="dialog-hint">
+        Optional integration for creating an OKF bundle from a public website.
+        The website URL, retrieved content, bundle schema, and your instructions
+        are sent to Perplexity under your own key. API billing is separate from
+        a Perplexity Pro subscription.
+      </p>
+      <details className="dialog-steps">
+        <summary>Show me how to get a key</summary>
+        <ol>
+          <li>
+            Open the{" "}
+            <a
+              href="https://console.perplexity.ai"
+              target="_blank"
+              rel="noreferrer"
+            >
+              Perplexity API Console
+            </a>
+            , add billing credit, and generate an API key.
+          </li>
+          <li>
+            Paste the key below. It stays in your OS keychain and is used only
+            by the app&apos;s native core.
+          </li>
+          <li>
+            Website import uses Perplexity&apos;s Agent API search and URL-fetch
+            tools, so both model and tool usage may be billed.
+          </li>
+        </ol>
+      </details>
+      <label>
+        API key{" "}
+        {verified ? (
+          <span className="ok">✓ connected</span>
+        ) : (
+          hasKey && <span className="ok">✓ saved</span>
+        )}
+        <input
+          type="password"
+          value={keyInput}
+          placeholder={hasKey ? "•••••••• (enter to replace)" : "pplx-…"}
+          onChange={(event) => setKeyInput(event.target.value)}
+        />
+      </label>
+      <div className="dialog-actions" style={{ justifyContent: "flex-start" }}>
+        <button
+          className="primary"
+          disabled={keyInput.trim() === ""}
+          onClick={() => void saveKey()}
+        >
+          Save key
+        </button>
+        {hasKey && <button onClick={() => void clearKey()}>Remove key</button>}
       </div>
       {status !== null && <p className="dialog-hint">{status}</p>}
       {failure !== null && <p className="dialog-error">{failure}</p>}

@@ -11,10 +11,14 @@ function App() {
   const settingsOpen = useStore((state) => state.settingsOpen);
   const setSettingsOpen = useStore((state) => state.setSettingsOpen);
   const refreshAiStatus = useStore((state) => state.refreshAiStatus);
+  const refreshPerplexityStatus = useStore(
+    (state) => state.refreshPerplexityStatus,
+  );
 
   useEffect(() => {
     void refreshAiStatus();
-  }, [refreshAiStatus]);
+    void refreshPerplexityStatus();
+  }, [refreshAiStatus, refreshPerplexityStatus]);
 
   // Native app menu: Settings… (Cmd+,).
   useEffect(() => {
@@ -51,7 +55,10 @@ function App() {
       {settingsOpen && (
         <SettingsDialog
           onClose={() => setSettingsOpen(false)}
-          onChanged={() => void refreshAiStatus()}
+          onChanged={() => {
+            void refreshAiStatus();
+            void refreshPerplexityStatus();
+          }}
         />
       )}
     </>
