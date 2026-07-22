@@ -129,7 +129,10 @@ mod tests {
     }
 
     #[test]
-    fn rejects_unknown_secret_names() {
-        assert!(secret_set("arbitrary-name".into(), "x".into()).is_err());
+    fn permits_only_known_integration_secret_names() {
+        assert!(entry("openrouter-api-key").is_ok());
+        assert!(entry("github-token").is_ok());
+        assert!(entry("perplexity-api-key").is_ok());
+        assert!(entry("arbitrary-name").is_err());
     }
 }

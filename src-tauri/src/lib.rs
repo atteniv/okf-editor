@@ -6,6 +6,7 @@ mod error;
 mod fs;
 mod git;
 mod github;
+mod perplexity;
 mod secrets;
 mod watch;
 
