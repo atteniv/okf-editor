@@ -40,17 +40,17 @@ notarization setup) start in M0 precisely so they're off the critical path by M3
 
 Everything here de-risks later milestones; nothing is user-visible.
 
-- [x] Tauri + React + TS + Vite + pnpm scaffold; app opens a window on
-      macOS/Windows/Linux (Linux via CI-built AppImage — catches WebKitGTK
-      issues on day one, per DESIGN §12)
+- [x] Tauri + React + TS + Vite + pnpm scaffold; frontend build and Rust
+      compile/tests run on Linux CI. Cross-platform installers and real-hardware
+      smoke tests remain M3 work.
 - [x] Repo layout: `src/` (`core/`, `platform/`, `ui/`), `src-tauri/`,
       `schemas/`, `fixtures/` (sample OKF bundles for tests)
-- [x] CI: extend existing workflow — frontend lint/typecheck/test/build now
-      real; add `cargo fmt`/`clippy`/`test`; add `cargo audit`/`pnpm audit`
+- [x] CI: frontend lint/typecheck/test/build and production `pnpm audit`;
+      Rust `cargo fmt`/`clippy`/`test`. Add `cargo audit` before release.
 - [x] Fill in CONTRIBUTING.md dev-setup placeholders (currently `<pkg>` stubs)
 - [ ] **Start long-lead procurement:** Apple Developer enrollment + Developer ID
       cert; order Windows code-signing cert (can take weeks — the reason this
-      is an M0 task)
+      is an M0 task). Step-by-step walkthrough: [DISTRIBUTION.md](DISTRIBUTION.md)
 - [x] Collect a fixture corpus: real OKF bundles from the ecosystem
       (`GoogleCloudPlatform/knowledge-catalog` examples, `superops-team/okf`)
       for schema/lint/round-trip tests
@@ -104,8 +104,9 @@ DESIGN §13). Strengthens the brand-play story — an AI-native OKF editor.
 - [x] **Wk 3 — Publish UX:** status view — changed-file list + tree badges,
       no diff rendering (descoped 2026-07-05: modified-indicators suffice;
       diffs live in the user's git tools); commit (+DCO signoff
-      toggle); pull-before-push with structured conflict guidance; branch + PR
-      mode (opens compare URL); e2e smoke: edit → commit → push to bare repo
+      toggle); pull-before-push with structured conflict guidance; trunk-only
+      sync with a return-to-main rescue action; e2e smoke: edit → commit → push
+      to bare repo
 
 **Exit criteria:** full core loop (proposal §6, minus New Project) works
 against a real GitHub repo with a fine-grained PAT on all 3 OSes.
@@ -114,7 +115,7 @@ against a real GitHub repo with a fine-grained PAT on all 3 OSes.
 
 - [ ] Release CI (`tauri-action`): signed + notarized artifacts for
       macOS (dmg), Windows (msi/nsis), Linux (AppImage + deb); updater manifest
-      signing, keys secured
+      signing, keys secured (see [DISTRIBUTION.md](DISTRIBUTION.md))
 - [ ] Manual test matrix pass on real hardware (checklist: every M1/M2 exit
       flow × 3 OSes); fix blockers
 - [ ] Docs: README un-comment badges, add real install instructions + demo GIF
@@ -166,7 +167,7 @@ bundle in < 5 minutes (the "frictionless wow").
 |---|---|---|---|
 | Signing/notarization delays release | M | H | Certs procured in M0; buffer week in M3; worst case ship Linux/macOS first |
 | OKF v0.1 spec churn breaks schema/lint | M | M | Data-driven schema (DESIGN §5); lint parity job turns upstream drift into a failing test within a day |
-| WebKitGTK (Linux) rendering issues | M | M | Linux AppImage built + smoked from M0, not discovered at M3 |
+| WebKitGTK (Linux) rendering issues | M | M | Build the AppImage in release CI and smoke it on Linux during the M3 manual matrix before release |
 | YAML round-trip edge cases mangle user files | L | **H** | Worst possible bug for trust. Minimal-diff test corpus from M1 wk 3; grow corpus from every bug report |
 | Google/OWOX ships an official general editor | L | H | Accept — proposal §9 says first-mover ≠ moat. Ship early (M3 before M4 exists for this reason); differentiation is prose+schema+local+git |
 | Adoption doesn't materialize | M | M | That's what the go/no-go is for (§6); the internal dogfood value (proposal §11) is the floor on wasted effort |

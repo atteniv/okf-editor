@@ -41,6 +41,8 @@ export interface SchemaConfig {
 }
 
 export const CONFIG_FILENAME = ".okf-editor.json";
+export const CONFIG_SCHEMA_URL =
+  "https://raw.githubusercontent.com/atteniv/okf-editor/main/schemas/okf-editor.schema.json";
 
 const TITLE: FieldDef = { key: "title", kind: "string", required: true };
 const TAGS: FieldDef = { key: "tags", kind: "tags" };
@@ -108,6 +110,29 @@ export function parseSchemaConfig(
     return { config: null, error: "config must be a JSON object" };
   }
   return { config: parsed as Partial<SchemaConfig>, error: null };
+}
+
+/** Add a discovered type without discarding any existing project settings. */
+export function addTypeToSchemaSource(
+  source: string | null,
+  typeName: string,
+): { source: string; error: null } | { source: null; error: string } {
+  const parsed = source === null ? { config: {}, error: null } : parseSchemaConfig(source);
+  if (parsed.error !== null) return { source: null, error: parsed.error };
+
+  const config = parsed.config as Partial<SchemaConfig> & { $schema?: string };
+  const next = {
+    ...(source === null ? { $schema: CONFIG_SCHEMA_URL } : {}),
+    ...config,
+    types: {
+      ...(config.types ?? {}),
+      [typeName]: {
+        label: typeName,
+        fields: [TITLE, TAGS],
+      },
+    },
+  };
+  return { source: `${JSON.stringify(next, null, 2)}\n`, error: null };
 }
 
 /**

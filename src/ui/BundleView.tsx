@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { generateDocMessages } from "../core/ai";
 import { groupByType, parseDoc } from "../core/bundle";
 import { buildFileTree, dirsContaining } from "../core/filetree";
-import { splitFrontmatter } from "../core/frontmatter";
+import { setKey, splitFrontmatter } from "../core/frontmatter";
 import { lintDoc, type Diagnostic, type QuickFix } from "../core/lint";
 import { relativize } from "../core/links";
 import { renderMarkdown } from "../core/markdown";
@@ -25,6 +25,24 @@ const MODES: { key: ViewMode; label: string }[] = [
   { key: "split", label: "Split" },
   { key: "preview", label: "Preview" },
 ];
+
+function quickFixLabel(fix: QuickFix): string {
+  if (fix.kind === "create-doc") return "Create";
+  if (fix.kind === "add-schema-type") return "Add type";
+  if (fix.kind === "remove-frontmatter") return "Remove frontmatter";
+  return "Add frontmatter";
+}
+
+function quickFixTitle(fix: QuickFix): string {
+  if (fix.kind === "create-doc") return "Create the missing document";
+  if (fix.kind === "add-schema-type") {
+    return `Add ${fix.typeName} to the project schema`;
+  }
+  if (fix.kind === "remove-frontmatter") {
+    return "Remove frontmatter while preserving the Markdown body";
+  }
+  return `Add ${fix.typeName} frontmatter with the inferred title`;
+}
 
 export function BundleView() {
   const {
@@ -52,6 +70,7 @@ export function BundleView() {
     createFolder,
     renameDoc,
     deleteDoc,
+    addSchemaType,
   } = useStore();
   const [showForm, setShowForm] = useState(true);
   const [fileOp, setFileOp] = useState<FileOp | null>(null);
@@ -199,8 +218,21 @@ export function BundleView() {
     }
   };
 
-  /** Apply a lint quick fix (create-doc keeps you where you are). */
+  /** Apply a lint quick fix without navigating away from the current doc. */
   const applyQuickFix = (fix: QuickFix) => {
+    if (fix.kind === "add-schema-type") {
+      void addSchemaType(fix.typeName);
+      return;
+    }
+    if (fix.kind === "remove-frontmatter") {
+      onEditFrontmatter(null);
+      return;
+    }
+    if (fix.kind === "add-frontmatter") {
+      const withType = setKey("", "type", fix.typeName);
+      onEditFrontmatter(setKey(withType, "title", fix.title));
+      return;
+    }
     if (fix.kind === "create-doc") {
       const dirPath = fix.targetPath.includes("/")
         ? fix.targetPath.slice(0, fix.targetPath.lastIndexOf("/"))
@@ -441,16 +473,34 @@ export function BundleView() {
             {showForm && (
               <FrontmatterForm
                 frontmatterRaw={split.frontmatterRaw}
+                docPath={selectedPath}
                 schema={schema}
                 docPaths={[...docs.keys()]}
                 onChange={onEditFrontmatter}
+                onAddFrontmatter={() => {
+                  const fix = frontmatterDiagnostics.find(
+                    (diagnostic) => diagnostic.fix?.kind === "add-frontmatter",
+                  )?.fix;
+                  if (fix?.kind === "add-frontmatter") applyQuickFix(fix);
+                }}
               />
             )}
             {frontmatterDiagnostics.length > 0 && (
               <ul className="fm-diagnostics">
                 {frontmatterDiagnostics.map((d, i) => (
                   <li key={i} className={d.severity}>
-                    {d.message} <span className="rule">{d.rule}</span>
+                    {d.message} <span className="rule">{d.rule}</span>{" "}
+                    {d.fix !== undefined && (
+                      <button
+                        className="diagnostic-fix"
+                        title={quickFixTitle(d.fix)}
+                        onClick={() => applyQuickFix(d.fix!)}
+                      >
+                        {d.fix.kind === "add-schema-type"
+                          ? "Add type to project schema"
+                          : quickFixLabel(d.fix)}
+                      </button>
+                    )}
                   </li>
                 ))}
               </ul>
@@ -621,10 +671,10 @@ function BottomPanel({
                         {d.fix !== undefined && (
                           <button
                             className="problem-fix"
-                            title="Create the missing document"
+                            title={quickFixTitle(d.fix)}
                             onClick={() => onFix(d.fix!)}
                           >
-                            Create
+                            {quickFixLabel(d.fix)}
                           </button>
                         )}
                       </li>

@@ -640,6 +640,22 @@ body.resizing-v {
   margin-left: auto;
 }
 
+.update-log-control {
+  color: var(--muted);
+  font-size: 0.75rem;
+}
+
+.update-log-control button {
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 0.15rem 0.5rem;
+  color: inherit;
+}
+
+.update-log-control button:hover {
+  background: var(--border);
+}
+
 .git-branch-select {
   font: inherit;
   font-size: 0.75rem;
@@ -876,6 +892,19 @@ body.resizing-v {
 .fm-diagnostics .rule {
   color: var(--muted);
   font-size: 0.7rem;
+}
+
+.diagnostic-fix {
+  margin-left: 0.5rem;
+  padding: 0.1rem 0.45rem;
+  border: 1px solid currentColor;
+  border-radius: 4px;
+  color: inherit;
+  font-size: 0.72rem;
+}
+
+.diagnostic-fix:hover {
+  background: color-mix(in srgb, currentColor 10%, transparent);
 }
 
 .doc-pane {

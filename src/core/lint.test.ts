@@ -18,10 +18,58 @@ describe("lintDoc", () => {
     expect(lintDoc(docs.get(OK_DOC.path)!, docs, DEFAULT_SCHEMA)).toEqual([]);
   });
 
-  it("OKFE001: flags missing frontmatter", () => {
-    const docs = index([{ path: "a.md", content: "# no frontmatter\n" }]);
-    const rules = lintDoc(docs.get("a.md")!, docs, DEFAULT_SCHEMA).map((d) => d.rule);
-    expect(rules).toEqual(["OKFE001"]);
+  it("does not require frontmatter on a reserved index document", () => {
+    const docs = index([
+      { path: "company/index.md", content: "# Company\n\n* [Atteniv](atteniv.md)\n" },
+    ]);
+
+    expect(
+      lintDoc(docs.get("company/index.md")!, docs, DEFAULT_SCHEMA).map(
+        (diagnostic) => diagnostic.rule,
+      ),
+    ).not.toContain("OKFE001");
+  });
+
+  it("OKFE001: uses the generic reference type for concept documents", () => {
+    const docs = index([{ path: "SPEC.md", content: "# OKF specification\n" }]);
+
+    expect(lintDoc(docs.get("SPEC.md")!, docs, DEFAULT_SCHEMA)[0].fix).toEqual({
+      kind: "add-frontmatter",
+      typeName: "reference",
+      title: "OKF specification",
+    });
+  });
+
+  it("validates reserved document structure without concept rules", () => {
+    const docs = index([
+      {
+        path: "log.md",
+        content: "---\ntype: reference\n---\n# Log\n\n## yesterday\n* Changed it.\n",
+      },
+    ]);
+    const rules = lintDoc(docs.get("log.md")!, docs, DEFAULT_SCHEMA).map(
+      (diagnostic) => diagnostic.rule,
+    );
+
+    expect(rules).toContain("OKFE007");
+    expect(
+      lintDoc(docs.get("log.md")!, docs, DEFAULT_SCHEMA).find(
+        (diagnostic) => diagnostic.rule === "OKFE007",
+      )?.fix,
+    ).toEqual({ kind: "remove-frontmatter" });
+    expect(rules).toContain("OKFE009");
+    expect(rules).not.toContain("OKFE003");
+  });
+
+  it("accepts a conformant update log", () => {
+    const docs = index([
+      {
+        path: "log.md",
+        content: "# Bundle Update Log\n\n## 2026-07-20\n* **Update**: Added a policy.\n",
+      },
+    ]);
+
+    expect(lintDoc(docs.get("log.md")!, docs, DEFAULT_SCHEMA)).toEqual([]);
   });
 
   it("OKFE002: flags missing type", () => {
@@ -36,7 +84,23 @@ describe("lintDoc", () => {
     ]);
     const diags = lintDoc(docs.get("a.md")!, docs, DEFAULT_SCHEMA);
     expect(diags.map((d) => d.rule)).toContain("OKFE003");
-    expect(diags.find((d) => d.rule === "OKFE003")?.severity).toBe("warning");
+    const unknownType = diags.find((d) => d.rule === "OKFE003");
+    expect(unknownType?.severity).toBe("warning");
+    expect(unknownType?.fix).toEqual({
+      kind: "add-schema-type",
+      typeName: "mystery",
+    });
+  });
+
+  it("honors disabled lint rules", () => {
+    const docs = index([
+      { path: "a.md", content: "---\ntype: mystery\ntitle: X\n---\n" },
+    ]);
+    const schema = mergeSchema(DEFAULT_SCHEMA, {
+      lint: { disable: ["OKFE003"] },
+    });
+
+    expect(lintDoc(docs.get("a.md")!, docs, schema)).toEqual([]);
   });
 
   it("OKFE004: flags a missing required field (title)", () => {

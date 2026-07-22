@@ -23,8 +23,9 @@ its rationale (§2). Decisions are cheap to reverse before code lands — object
 **Non-goals (see proposal §7):**
 - Data-model / ER-diagram editing, real-time collaboration, auto-merge conflict
   resolution, hosted/web deployment (kept *possible*, not built).
-- Graph visualization (deferred; the link index is designed so a graph view can
-  be added without rework).
+
+A read-only knowledge-graph overview shipped during MVP; graph editing remains
+out of scope.
 
 ## 2. Decisions (resolving the proposal's open questions)
 
@@ -33,7 +34,7 @@ its rationale (§2). Decisions are cheap to reverse before code lands — object
 | 1 | React vs Svelte | **React + TypeScript** | This is an OSS brand play — maximize the contributor pool and ecosystem (CodeMirror bindings, Radix, testing tools). The team already knows React, and Svelte's size win is marginal inside Tauri, where the webview is the floor. |
 | 2 | Bundle `okflint` vs reimplement | **Reimplement core rules in TS** (data-driven rule set), keep parity tests against upstream `okflint` | Inline lint must run per keystroke in the webview; spawning a process per edit is the wrong shape. The seeded repo skeleton still includes an `okflint` GitHub Action, so the *authoritative* check stays upstream. |
 | 3 | Tag vocabulary | **Per-project config, with a shipped starter taxonomy as the default** | Both halves of the question are right: projects need control, and an empty vocabulary is a bad first-run experience. |
-| 4 | Graph view in MVP | **Deferred** | Confirming the proposal's lean. The link index (§6.5) is the graph's data source, so nothing is lost by waiting. |
+| 4 | Graph view in MVP | **Shipped as a read-only overview** | The existing link index (§6.5) made a focused force-directed overview inexpensive; graph editing remains deferred. |
 | 5 | Org support in Phase 1 | **Read/clone/push to org repos: yes** (any repo a fine-grained PAT can reach). **Org repo *creation*: Phase 2** | Cloning an org repo needs no extra design; creation is where org token-approval policies bite (proposal §5). |
 
 Additional stack decisions:
@@ -59,7 +60,7 @@ Same shape as the proposal, with named modules:
 │  │  App shell  │ │       Editor pane        │ │  Publish pane  │  │
 │  │  · project  │ │  · CodeMirror (markdown) │ │  · git status  │  │
 │  │    switcher │ │  · frontmatter form      │ │  · commit/push │  │
-│  │  · doc tree │ │  · live preview          │ │  · PR branch   │  │
+│  │  · doc tree │ │  · live preview          │ │  · trunk sync  │  │
 │  │  · lint     │ │  · link autocomplete     │ └────────────────┘  │
 │  │    panel    │ └──────────────────────────┘                     │
 │  └─────────────┘                                                  │
@@ -326,8 +327,8 @@ explicit timeouts.
 5. **Clone existing** → URL or repo picker (if token can list) → clone to a
    chosen parent dir → opens as a project.
 6. **Publish** → status view → message (+ optional `-s` signoff) → commit →
-   pull → push. "Branch + PR" mode: create branch, push, open compare URL in
-   the browser.
+   pull → push on the trunk branch. If the repository is left on another branch,
+   offer a return-to-main rescue action before syncing.
 7. **Token expired/revoked** (fine-grained PATs *must* expire) → 401 anywhere →
    non-blocking "reconnect GitHub" banner; local editing never blocks on auth.
 
@@ -339,7 +340,7 @@ explicit timeouts.
 | Path traversal from webview | Canonicalize-and-verify in every fs command (§7.1) + Tauri FS scope. |
 | Token leakage | Keychain only; never in URL/argv/logs/frontend state (§7.3–7.4); GitHub REST from Rust only. |
 | Command injection | No shell interpolation anywhere; `git` via arg vectors. |
-| Supply chain | Lockfiles committed; `cargo audit` + `pnpm audit` in CI; Tauri updater artifacts **signed** (updater public key pinned in the app). |
+| Supply chain | Lockfiles committed; production `pnpm audit` in CI; add `cargo audit` before release; Tauri updater artifacts **signed** (updater public key pinned in the app). |
 | Overbroad app permissions | Tauri capabilities minimal; asset scope limited to bundle roots. |
 
 Privacy stance: **no telemetry in MVP.** It's the right OSS trust posture and
@@ -408,7 +409,7 @@ M1 and M2 as milestone AI-1 (see PLAN).
 
 ## 14. Deliberately deferred
 
-Graph view (data source already maintained, §4) · embedded `git2` (same command
-signatures, §7.3) · hosted web variant (enforced by the `platform/` seam, §3) ·
-multi-bundle workspaces · real-time collaboration (non-goal) · OAuth device flow
-and repo auto-creation (designed in §7.5, scheduled in Phase 2).
+Graph editing · embedded `git2` (same command signatures, §7.3) · hosted web
+variant (enforced by the `platform/` seam, §3) · multi-bundle workspaces ·
+real-time collaboration (non-goal) · OAuth device flow and repo auto-creation
+(designed in §7.5, scheduled in Phase 2).
