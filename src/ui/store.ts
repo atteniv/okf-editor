@@ -5,6 +5,12 @@ import { lintBundle, type Diagnostic } from "../core/lint";
 import { rewriteLinksForRename } from "../core/rename";
 import { generateSkeleton, instantiateTemplate } from "../core/template";
 import {
+  appendUpdateLog,
+  createUpdateLog,
+  ROOT_UPDATE_LOG,
+} from "../core/updateLog";
+import {
+  addTypeToSchemaSource,
   CONFIG_FILENAME,
   DEFAULT_SCHEMA,
   mergeSchema,
@@ -133,12 +139,16 @@ interface AppState {
   renameDoc(oldPath: string, newPath: string): Promise<void>;
   /** Delete to the OS trash. */
   deleteDoc(path: string): Promise<void>;
+  /** Add an unknown document type to the root project schema. */
+  addSchemaType(typeName: string): Promise<void>;
+  /** Create the optional root OKF log; later commits append to it. */
+  enableUpdateLog(): Promise<void>;
 
   onEdit(text: string): void;
   /** Replace only the body, keeping the draft's frontmatter. */
   onEditBody(text: string): void;
   /** Replace only the frontmatter, keeping the draft's body. */
-  onEditFrontmatter(frontmatterRaw: string): void;
+  onEditFrontmatter(frontmatterRaw: string | null): void;
   saveNow(): Promise<void>;
   resolveConflict(action: "reload" | "keep-mine"): Promise<void>;
 }
@@ -357,6 +367,18 @@ export const useStore = create<AppState>((set, get) => {
       if (dirty) await get().saveNow();
       set({ gitBusy: true, gitError: null, pullNotice: null });
       try {
+        if (get().allFiles.includes(ROOT_UPDATE_LOG)) {
+          const source = await platform.readDoc(root, ROOT_UPDATE_LOG);
+          const date = new Date().toISOString().slice(0, 10);
+          const content = appendUpdateLog(source, date, commitMessage);
+          await platform.writeDoc(root, ROOT_UPDATE_LOG, content);
+          const docs = new Map(get().docs);
+          docs.set(ROOT_UPDATE_LOG, parseDoc({ path: ROOT_UPDATE_LOG, content }));
+          set({
+            docs,
+            problems: lintBundle(docs, get().schema),
+          });
+        }
         await platform.gitCommit(root, commitMessage, signoff);
       } catch (err) {
         set({ gitError: message(err), gitBusy: false });
@@ -628,6 +650,68 @@ export const useStore = create<AppState>((set, get) => {
         error: null,
       });
       void get().refreshGit();
+    },
+
+    enableUpdateLog: async () => {
+      const { root, allFiles } = get();
+      if (root === null || allFiles.includes(ROOT_UPDATE_LOG)) return;
+      const date = new Date().toISOString().slice(0, 10);
+      const content = createUpdateLog(date);
+      try {
+        await platform.writeDoc(root, ROOT_UPDATE_LOG, content);
+      } catch (err) {
+        set({ error: `Could not create update log: ${message(err)}` });
+        return;
+      }
+
+      const docs = new Map(get().docs);
+      docs.set(ROOT_UPDATE_LOG, parseDoc({ path: ROOT_UPDATE_LOG, content }));
+      const files = new Set(get().allFiles);
+      files.add(ROOT_UPDATE_LOG);
+      set({
+        docs,
+        allFiles: [...files].sort(),
+        problems: lintBundle(docs, get().schema),
+        error: null,
+      });
+      void get().refreshGit();
+    },
+
+    addSchemaType: async (typeName) => {
+      const { root } = get();
+      if (root === null) return;
+
+      let currentSource: string | null;
+      try {
+        currentSource = await platform.readDoc(root, CONFIG_FILENAME);
+      } catch {
+        currentSource = null;
+      }
+      const update = addTypeToSchemaSource(currentSource, typeName);
+      if (update.error !== null) {
+        set({ schemaError: `${CONFIG_FILENAME}: ${update.error}` });
+        return;
+      }
+
+      try {
+        await platform.writeDoc(root, CONFIG_FILENAME, update.source);
+      } catch (err) {
+        set({ error: `Could not update project schema: ${message(err)}` });
+        return;
+      }
+
+      const parsed = parseSchemaConfig(update.source);
+      if (parsed.error !== null) return;
+      const schema = mergeSchema(DEFAULT_SCHEMA, parsed.config);
+      const files = new Set(get().allFiles);
+      files.add(CONFIG_FILENAME);
+      set({
+        schema,
+        schemaError: null,
+        allFiles: [...files].sort(),
+        problems: lintBundle(get().docs, schema),
+        error: null,
+      });
     },
 
     deleteDoc: async (path) => {

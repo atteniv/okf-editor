@@ -22,11 +22,10 @@ Please open an issue to discuss before building anything large or scope-expandin
 
 ## Development setup
 
-Prerequisites: [Rust](https://rustup.rs) (stable), Node.js ≥ 22 with
-[pnpm](https://pnpm.io) ≥ 10, and the
-[Tauri prerequisites](https://tauri.app/start/prerequisites/) for your OS
-(on Linux that includes WebKitGTK dev packages — see the list in
-[`.github/workflows/ci.yml`](.github/workflows/ci.yml)).
+Full prerequisites and install instructions live in
+[`docs/DEVELOPMENT.md`](docs/DEVELOPMENT.md). In short: [Rust](https://rustup.rs)
+(stable), Node.js ≥ 22 with [pnpm](https://pnpm.io) ≥ 10, git, and the
+[Tauri prerequisites](https://tauri.app/start/prerequisites/) for your OS.
 
 ```bash
 # install deps

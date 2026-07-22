@@ -16,7 +16,15 @@ import { fieldsForType, type SchemaConfig } from "./schema";
 export type Severity = "error" | "warning";
 
 /** A machine-applicable remediation attached to a diagnostic. */
-export type QuickFix = { kind: "create-doc"; targetPath: string };
+export type QuickFix =
+  | { kind: "create-doc"; targetPath: string }
+  | { kind: "add-schema-type"; typeName: string }
+  | { kind: "remove-frontmatter" }
+  | {
+      kind: "add-frontmatter";
+      typeName: "index" | "reference";
+      title: string;
+    };
 
 export interface Diagnostic {
   rule: string;
@@ -36,6 +44,37 @@ export function lintDoc(
   schema: SchemaConfig,
 ): Diagnostic[] {
   const diagnostics: Diagnostic[] = [];
+  const reservedName = doc.path.split("/").at(-1)?.toLowerCase();
+
+  if (reservedName === "index.md" || reservedName === "log.md") {
+    if (doc.frontmatterRaw !== null) {
+      diagnostics.push({
+        rule: "OKFE007",
+        severity: "error",
+        message: `Reserved ${reservedName} files must not contain frontmatter.`,
+        where: "frontmatter",
+        fix: { kind: "remove-frontmatter" },
+      });
+    }
+    if (reservedName === "index.md" && !/^#{1,6}\s+\S/m.test(doc.body)) {
+      diagnostics.push({
+        rule: "OKFE008",
+        severity: "warning",
+        message: "An OKF index.md should group entries beneath headings.",
+        where: "body",
+      });
+    }
+    if (reservedName === "log.md" && !hasValidUpdateLogDates(doc.body)) {
+      diagnostics.push({
+        rule: "OKFE009",
+        severity: "warning",
+        message: "Log entries must use newest-first `## YYYY-MM-DD` headings.",
+        where: "body",
+      });
+    }
+    diagnostics.push(...brokenLinkDiagnostics(doc, docs));
+    return enabledDiagnostics(diagnostics, schema);
+  }
 
   // OKFE001 — missing frontmatter entirely.
   if (doc.frontmatterRaw === null) {
@@ -44,6 +83,11 @@ export function lintDoc(
       severity: "error",
       message: "Document has no frontmatter; OKF requires at least `type`.",
       where: "frontmatter",
+      fix: {
+        kind: "add-frontmatter",
+        typeName: "reference",
+        title: doc.title,
+      },
     });
     // No frontmatter: the remaining frontmatter rules don't apply.
   } else {
@@ -67,6 +111,7 @@ export function lintDoc(
         severity: "warning",
         message: `Type "${values.type}" is not defined in the project schema.`,
         where: "frontmatter",
+        fix: { kind: "add-schema-type", typeName: values.type },
       });
     }
 
@@ -104,24 +149,50 @@ export function lintDoc(
     }
   }
 
-  // OKFE005 — broken internal links (target not in the bundle).
-  for (const link of doc.links) {
-    if (!docs.has(link.target)) {
-      diagnostics.push({
-        rule: "OKFE005",
-        severity: "error",
-        message: `Broken link: "${link.raw}" — no document at ${link.target}.`,
-        where: "body",
-        from: link.from,
-        to: link.to,
-        ...(link.target.endsWith(".md")
-          ? { fix: { kind: "create-doc" as const, targetPath: link.target } }
-          : {}),
-      });
-    }
-  }
+  diagnostics.push(...brokenLinkDiagnostics(doc, docs));
+  return enabledDiagnostics(diagnostics, schema);
+}
 
-  return diagnostics;
+function hasValidUpdateLogDates(body: string): boolean {
+  const headings = [...body.matchAll(/^##\s+(.+?)\s*$/gm)].map(
+    (match) => match[1],
+  );
+  if (headings.length === 0) return false;
+  if (headings.some((heading) => !/^\d{4}-\d{2}-\d{2}$/.test(heading))) {
+    return false;
+  }
+  return headings.every(
+    (heading, index) => index === 0 || headings[index - 1] >= heading,
+  );
+}
+
+function brokenLinkDiagnostics(
+  doc: DocMeta,
+  docs: Map<string, DocMeta>,
+): Diagnostic[] {
+  return doc.links.flatMap((link) => {
+    if (docs.has(link.target)) return [];
+    return [{
+      rule: "OKFE005",
+      severity: "error" as const,
+      message: `Broken link: "${link.raw}" — no document at ${link.target}.`,
+      where: "body" as const,
+      from: link.from,
+      to: link.to,
+      ...(link.target.endsWith(".md")
+        ? { fix: { kind: "create-doc" as const, targetPath: link.target } }
+        : {}),
+    }];
+  });
+}
+
+function enabledDiagnostics(
+  diagnostics: Diagnostic[],
+  schema: SchemaConfig,
+): Diagnostic[] {
+  return diagnostics.filter(
+    (diagnostic) => !schema.lint.disable.includes(diagnostic.rule),
+  );
 }
 
 /** Bundle-wide pass; only paths with findings appear in the result. */

@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  addTypeToSchemaSource,
   DEFAULT_SCHEMA,
   fieldsForType,
   GENERIC_FIELDS,
@@ -22,6 +23,48 @@ describe("parseSchemaConfig", () => {
 
   it("rejects non-object configs", () => {
     expect(parseSchemaConfig("[1,2]").error).toContain("must be a JSON object");
+  });
+});
+
+describe("addTypeToSchemaSource", () => {
+  it("creates a project config with a minimal definition for the discovered type", () => {
+    const result = addTypeToSchemaSource(null, "Persona");
+
+    expect(result.error).toBeNull();
+    expect(JSON.parse(result.source!)).toMatchObject({
+      types: {
+        Persona: {
+          label: "Persona",
+          fields: [
+            { key: "title", kind: "string", required: true },
+            { key: "tags", kind: "tags" },
+          ],
+        },
+      },
+    });
+  });
+
+  it("preserves existing project configuration when adding a type", () => {
+    const result = addTypeToSchemaSource(
+      '{"tagVocabulary":["legal"],"types":{"Policy":{"label":"Policy"}}}',
+      "Persona",
+    );
+
+    expect(result.error).toBeNull();
+    expect(JSON.parse(result.source!)).toMatchObject({
+      tagVocabulary: ["legal"],
+      types: {
+        Policy: { label: "Policy" },
+        Persona: { label: "Persona" },
+      },
+    });
+  });
+
+  it("refuses to overwrite a malformed project config", () => {
+    const result = addTypeToSchemaSource("{broken", "Persona");
+
+    expect(result.source).toBeNull();
+    expect(result.error).toContain("invalid JSON");
   });
 });
 

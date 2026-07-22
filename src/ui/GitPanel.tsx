@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { ROOT_UPDATE_LOG } from "../core/updateLog";
 import { useStore } from "./store";
 import { ConflictDialog } from "./ConflictDialog";
 import { PullResultDialog } from "./PullResultDialog";
@@ -35,6 +36,8 @@ export function GitTabContent({ onSelect, onPublish }: GitTabProps) {
     switchBranch,
     setSettingsOpen,
     refreshGit,
+    allFiles,
+    enableUpdateLog,
   } = useStore();
   const [messageText, setMessageText] = useState("");
   const [signoff, setSignoff] = useState(
@@ -86,6 +89,21 @@ export function GitTabContent({ onSelect, onPublish }: GitTabProps) {
           </button>
         </div>
       )}
+
+      <div className="update-log-control">
+        {allFiles.includes(ROOT_UPDATE_LOG) ? (
+          <span title="Explicit Save Changes commits are recorded in log.md">
+            ✓ Update log enabled
+          </span>
+        ) : (
+          <button
+            onClick={() => void enableUpdateLog()}
+            title="Create an optional OKF log.md and record future Save Changes descriptions"
+          >
+            Enable update log
+          </button>
+        )}
+      </div>
 
       {gitConflicts !== null && (
         <div className="conflict-banner">

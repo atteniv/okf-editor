@@ -9,25 +9,41 @@ import {
 
 interface FormProps {
   frontmatterRaw: string | null;
+  docPath: string;
   schema: SchemaConfig;
   /** All doc paths, for doc-ref fields. */
   docPaths: string[];
   onChange: (frontmatterRaw: string) => void;
+  onAddFrontmatter: () => void;
 }
 
 export function FrontmatterForm({
   frontmatterRaw,
+  docPath,
   schema,
   docPaths,
   onChange,
+  onAddFrontmatter,
 }: FormProps) {
   const [rawMode, setRawMode] = useState(false);
+  const filename = docPath.split("/").at(-1)?.toLowerCase();
+  const reserved = filename === "index.md" || filename === "log.md";
+
+  if (frontmatterRaw === null && reserved) {
+    return (
+      <div className="fm-form fm-empty">
+        <span>
+          OKF reserves {filename}; frontmatter is not required for this file.
+        </span>
+      </div>
+    );
+  }
 
   if (frontmatterRaw === null) {
     return (
       <div className="fm-form fm-empty">
         <span>No frontmatter.</span>
-        <button onClick={() => onChange("type:\n")}>Add frontmatter</button>
+        <button onClick={onAddFrontmatter}>Add required frontmatter</button>
       </div>
     );
   }
