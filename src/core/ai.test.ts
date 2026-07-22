@@ -5,7 +5,11 @@ import {
   extractReferences,
   generateDocMessages,
   mergeConflictMessages,
+  parseWebsitePlan,
+  renderWebsiteDocument,
   systemPrompt,
+  websiteDocPrompt,
+  websitePlanPrompt,
 } from "./ai";
 import { DEFAULT_SCHEMA } from "./schema";
 
@@ -96,5 +100,120 @@ describe("extractReferences", () => {
       docs,
     );
     expect(refs).toEqual([DOC]);
+  });
+});
+
+describe("websitePlanPrompt", () => {
+  it("grounds research in the OKF specification and supplied website", () => {
+    const prompt = websitePlanPrompt(
+      DEFAULT_SCHEMA,
+      "Example Knowledge",
+      "https://example.com",
+      "Focus on products and policies",
+    );
+
+    expect(prompt).toContain("SPEC.md");
+    expect(prompt).toContain("https://example.com");
+    expect(prompt).toContain("Focus on products and policies");
+    expect(prompt).toContain("untrusted source material");
+    expect(prompt).toContain("4 to 8 documents");
+  });
+});
+
+describe("parseWebsitePlan", () => {
+  const validPlan = {
+    siteTitle: "Example",
+    siteSummary: "An example organization.",
+    sources: [
+      { title: "Home", url: "https://example.com/" },
+      { title: "About", url: "https://example.com/about" },
+    ],
+    docs: [
+      {
+        path: "index.md",
+        type: "index",
+        title: "Example",
+        brief: "Introduce the organization.",
+        sourceUrls: ["https://example.com/"],
+      },
+      {
+        path: "guides/about.md",
+        type: "guide",
+        title: "About Example",
+        brief: "Describe the organization.",
+        sourceUrls: ["https://example.com/about"],
+      },
+    ],
+  };
+
+  it("accepts a grounded, schema-valid plan", () => {
+    expect(
+      parseWebsitePlan(JSON.stringify(validPlan), DEFAULT_SCHEMA, "https://example.com"),
+    ).toEqual(validPlan);
+  });
+
+  it("rejects unsafe paths, unknown types, and off-domain sources", () => {
+    for (const docs of [
+      [{ ...validPlan.docs[0], path: "../escape.md" }],
+      [{ ...validPlan.docs[0], type: "unknown" }],
+      [
+        {
+          ...validPlan.docs[0],
+          sourceUrls: ["https://attacker.example/claim"],
+        },
+      ],
+    ]) {
+      expect(
+        parseWebsitePlan(
+          JSON.stringify({ ...validPlan, docs }),
+          DEFAULT_SCHEMA,
+          "https://example.com",
+        ),
+      ).toBeNull();
+    }
+  });
+
+  it("rejects a plan without a root index", () => {
+    expect(
+      parseWebsitePlan(
+        JSON.stringify({ ...validPlan, docs: validPlan.docs.slice(1) }),
+        DEFAULT_SCHEMA,
+        "https://example.com",
+      ),
+    ).toBeNull();
+  });
+});
+
+describe("website document generation", () => {
+  const doc = {
+    path: "guides/about.md",
+    type: "guide",
+    title: "About Example",
+    brief: "Describe the organization without inventing claims.",
+    sourceUrls: ["https://example.com/about"],
+  };
+
+  it("asks Perplexity for body-only, source-grounded content", () => {
+    const prompt = websiteDocPrompt(DEFAULT_SCHEMA, doc);
+    expect(prompt).toContain("do not output YAML frontmatter");
+    expect(prompt).toContain("https://example.com/about");
+    expect(prompt).toContain("untrusted source material");
+  });
+
+  it("renders editor-owned frontmatter and deterministic source links", () => {
+    const rendered = renderWebsiteDocument(doc, "## Overview\n\nBody.");
+    expect(rendered).toContain("type: guide");
+    expect(rendered).toContain("# About Example");
+    expect(rendered).toContain("## Sources");
+    expect(rendered).toContain("<https://example.com/about>");
+  });
+
+  it("does not add forbidden frontmatter to index.md", () => {
+    const rendered = renderWebsiteDocument(
+      { ...doc, path: "index.md", type: "index" },
+      "Welcome.",
+    );
+    expect(rendered.startsWith("---")).toBe(false);
+    expect(rendered).toContain("# About Example");
   });
 });
