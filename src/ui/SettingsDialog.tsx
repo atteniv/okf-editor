@@ -225,12 +225,10 @@ function PerplexitySection({ onChanged }: { onChanged: () => void }) {
       .secretExists(PERPLEXITY_KEY_NAME)
       .then((exists) => {
         setHasKey(exists);
-        if (exists) verifyKey();
       })
       .catch((err: unknown) =>
         setFailure(`Keychain check failed: ${describe(err)}`),
       );
-    
   }, []);
 
   const saveKey = async () => {
@@ -293,7 +291,9 @@ function PerplexitySection({ onChanged }: { onChanged: () => void }) {
           </li>
           <li>
             Website import uses Perplexity&apos;s Agent API search and URL-fetch
-            tools, so both model and tool usage may be billed.
+            tools, so both model and tool usage may be billed. Saving or testing
+            the key makes one minimal Agent request and may incur a very small
+            charge.
           </li>
         </ol>
       </details>
@@ -319,6 +319,7 @@ function PerplexitySection({ onChanged }: { onChanged: () => void }) {
         >
           Save key
         </button>
+        {hasKey && <button onClick={verifyKey}>Test key</button>}
         {hasKey && <button onClick={() => void clearKey()}>Remove key</button>}
       </div>
       {status !== null && <p className="dialog-hint">{status}</p>}
