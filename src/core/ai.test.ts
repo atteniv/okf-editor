@@ -173,6 +173,24 @@ describe("parseWebsitePlan", () => {
     }
   });
 
+  it("accepts canonical www redirects and same-site subdomains", () => {
+    const sources = [
+      { title: "Home", url: "https://www.example.com/" },
+      { title: "Docs", url: "https://docs.example.com/about" },
+    ];
+    const docs = validPlan.docs.map((doc, index) => ({
+      ...doc,
+      sourceUrls: [sources[index].url],
+    }));
+    expect(
+      parseWebsitePlan(
+        JSON.stringify({ ...validPlan, sources, docs }),
+        DEFAULT_SCHEMA,
+        "https://example.com",
+      ),
+    ).not.toBeNull();
+  });
+
   it("rejects a plan without a root index", () => {
     expect(
       parseWebsitePlan(

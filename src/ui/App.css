@@ -110,6 +110,17 @@ button {
   margin-bottom: 0.35rem;
 }
 
+.integration-setup-link {
+  align-self: flex-start;
+  margin: -0.2rem 0 0.35rem 1.45rem;
+  font-size: 0.8rem;
+}
+
+.website-privacy-note {
+  max-width: 32rem;
+  margin-top: 0;
+}
+
 .plan-list {
   list-style: none;
   margin: 0 0 0.5rem;

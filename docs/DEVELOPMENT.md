@@ -83,8 +83,13 @@ publish. On macOS it comes with the Xcode Command Line Tools; on Windows use
   Settings; stored only through the OS keychain, never in plaintext application
   files or repository data.
 - **AI features (generate, chat, AI merge):** an [OpenRouter](https://openrouter.ai)
-  API key, also entered in Settings and stored in the keychain. Everything else
-  works without it.
+  API key, also entered in Settings and stored in the keychain.
+- **Website-to-bundle import:** a separately billed
+  [Perplexity API](https://console.perplexity.ai) key. The optional workflow uses
+  Agent API web search and URL fetching to research one public domain, then
+  generates each user-approved document from its cited source URLs. A Perplexity
+  Pro subscription does not include API billing. Everything else works without
+  this key.
 
 On Linux, key storage requires a running Secret Service provider such as GNOME
 Keyring or KWallet. Minimal/headless sessions without one can run the editor, but
@@ -142,7 +147,7 @@ cargo test
 
 - **macOS keychain prompts:** dev builds are ad-hoc signed, and the signature changes
   on every rebuild. When the keychain prompt appears for a stored secret (GitHub
-  token or OpenRouter key), choose **"Always Allow"** — you'll still get re-prompted
+  token, OpenRouter key, or Perplexity key), choose **"Always Allow"** — you'll still get re-prompted
   after rebuilds, which is expected.
 - **Architecture boundary (lint-enforced):** only `src/platform/` may import Tauri
   APIs. `src/core/` is pure TypeScript with no Tauri and no DOM. If ESLint rejects
@@ -157,7 +162,8 @@ cargo test
 - `src/platform/` — the **only** module that may import Tauri APIs; everything else
   sees the `Platform` interface.
 - `src/ui/` — React components.
-- `src-tauri/` — the Rust command boundary: fs, git, keychain, GitHub, AI streaming.
+- `src-tauri/` — the Rust command boundary: fs, git, keychain, GitHub, AI streaming,
+  and bounded Perplexity Agent API research.
 - `fixtures/` — sample OKF bundles used by tests (and handy for manual testing).
 - `schemas/` — published JSON Schemas (e.g. for `.okf-editor.json`).
 - [`okf-editor-architecture.html`](../okf-editor-architecture.html) — generated

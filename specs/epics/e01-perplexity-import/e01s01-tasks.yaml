@@ -1,6 +1,6 @@
 story_id: e01s01
 title: Create an OKF bundle from a website
-status: failing
+status: passing
 bcps: 6
 tasks:
   - id: 1
@@ -35,7 +35,7 @@ tasks:
     verify: pnpm test && pnpm build
     risk: P0
     security: high
-    status: failing
+    status: passing
     allure:
       severity: critical
       categories: [UI, integration, Security Review]
@@ -44,7 +44,7 @@ tasks:
     verify: pnpm lint && git diff --check
     risk: P2
     security: low
-    status: failing
+    status: passing
     allure:
       severity: normal
       categories: [documentation]

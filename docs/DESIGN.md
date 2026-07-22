@@ -407,7 +407,29 @@ M1 and M2 as milestone AI-1 (see PLAN).
   structure; no vector store at bundle scale), ⌘K inline edits, AI lint
   fixes.
 
-## 14. Deliberately deferred
+## 14. Perplexity website import
+
+Website-to-bundle creation is a separate, optional BYOK integration using the
+Perplexity Agent API. It does not change the general OpenRouter assistant.
+
+- The Perplexity key follows §7.4: OS keychain custody, native Rust requests,
+  and no webview read path.
+- Planning gives the agent the canonical OKF `SPEC.md` URL and active editor
+  schema, plus `web_search` constrained to the supplied domain and `fetch_url`
+  capped at ten URLs. Returned JSON is validated against safe relative paths,
+  known types, the source domain, and a required root `index.md`.
+- Website text is untrusted prompt data. Both native and prompt-level controls
+  tell the agent to ignore embedded instructions. Login walls, paywalls,
+  private/local URLs, multiple seed domains, and exhaustive mirroring are out
+  of scope.
+- The user reviews the proposed document list before generation. Each document
+  is generated independently from its approved URLs; the editor owns
+  frontmatter, headings, filesystem writes, and deterministic source links.
+  No partial bundle is written when research or generation fails.
+- The settings and creation UI disclose the data sent to Perplexity and that
+  API billing is separate from consumer subscriptions.
+
+## 15. Deliberately deferred
 
 Graph editing · embedded `git2` (same command signatures, §7.3) · hosted web
 variant (enforced by the `platform/` seam, §3) · multi-bundle workspaces ·
