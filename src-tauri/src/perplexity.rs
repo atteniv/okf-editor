@@ -186,9 +186,17 @@ pub async fn perplexity_verify() -> Result<(), AppError> {
             message: "Perplexity API key is not configured".into(),
         });
     };
+    // The model catalog is public and therefore cannot verify a credential.
+    // Use the smallest authenticated Agent request instead (no web tools).
     let response = client()?
-        .get(format!("{API}/models"))
+        .post(format!("{API}/agent"))
         .bearer_auth(key)
+        .json(&json!({
+            "preset": "fast",
+            "input": "Reply OK.",
+            "max_output_tokens": 1,
+            "store": false
+        }))
         .send()
         .await
         .map_err(|error| network_error(format!("Perplexity request failed: {error}")))?;
