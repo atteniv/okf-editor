@@ -3,6 +3,7 @@ import { buildBacklinks, buildIndex, parseDoc, type DocMeta } from "../core/bund
 import { joinFrontmatter, splitFrontmatter } from "../core/frontmatter";
 import { lintBundle, type Diagnostic } from "../core/lint";
 import { rewriteLinksForRename } from "../core/rename";
+import { removeRecentPath } from "../core/recents";
 import { generateSkeleton, instantiateTemplate } from "../core/template";
 import {
   appendUpdateLog,
@@ -122,6 +123,7 @@ interface AppState {
 
   openFolder(): Promise<void>;
   openBundle(root: string): Promise<void>;
+  removeRecent(root: string): void;
   selectDoc(path: string): Promise<void>;
   closeBundle(): Promise<void>;
   setViewMode(mode: ViewMode): void;
@@ -472,6 +474,12 @@ export const useStore = create<AppState>((set, get) => {
     openFolder: async () => {
       const root = await platform.pickFolder();
       if (root !== null) await get().openBundle(root);
+    },
+
+    removeRecent: (root) => {
+      const recents = removeRecentPath(get().recents, root);
+      saveRecents(recents);
+      set({ recents });
     },
 
     openBundle: async (root) => {

@@ -277,23 +277,59 @@ button {
   padding: 0;
 }
 
-.recents li button {
+.recents li {
   display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.recents .recent-open {
+  display: flex;
+  flex: 1;
   flex-direction: column;
   align-items: flex-start;
-  width: 100%;
+  min-width: 0;
   padding: 0.5rem 0.75rem;
   border-radius: 6px;
   text-align: left;
 }
 
-.recents li button:hover {
+.recents .recent-open:hover,
+.recents .recent-remove:hover {
   background: var(--border);
 }
 
-.recents .path {
-  font-size: 0.75rem;
+.recents .recent-remove {
+  display: grid;
+  flex: 0 0 auto;
+  width: 2.25rem;
+  height: 2.25rem;
+  place-items: center;
+  border-radius: 6px;
   color: var(--muted);
+}
+
+.recents .recent-remove:hover {
+  color: #dc2626;
+}
+
+.recents .recent-remove svg {
+  width: 1rem;
+  height: 1rem;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.75;
+}
+
+.recents .path {
+  max-width: 100%;
+  overflow: hidden;
+  color: var(--muted);
+  font-size: 0.75rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 /* ---- Bundle view ---- */
