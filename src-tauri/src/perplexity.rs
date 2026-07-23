@@ -94,6 +94,16 @@ fn website_host(website_url: &str) -> Result<String, AppError> {
     }
 }
 
+fn verification_body() -> Value {
+    // Keep this aligned with Perplexity's documented preset quickstart. Very
+    // small max-output values currently produce HTTP 400 before generation.
+    json!({
+        "preset": "low",
+        "input": "Reply with OK.",
+        "store": false
+    })
+}
+
 fn plan_schema() -> Value {
     json!({
         "type": "json_schema",
@@ -191,12 +201,7 @@ pub async fn perplexity_verify() -> Result<(), AppError> {
     let response = client()?
         .post(format!("{API}/agent"))
         .bearer_auth(key)
-        .json(&json!({
-            "preset": "fast",
-            "input": "Reply OK.",
-            "max_output_tokens": 1,
-            "store": false
-        }))
+        .json(&verification_body())
         .send()
         .await
         .map_err(|error| network_error(format!("Perplexity request failed: {error}")))?;
@@ -271,6 +276,18 @@ pub async fn perplexity_agent(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn uses_documented_low_preset_for_key_verification() {
+        assert_eq!(
+            verification_body(),
+            serde_json::json!({
+                "preset": "low",
+                "input": "Reply with OK.",
+                "store": false
+            })
+        );
+    }
 
     #[test]
     fn extracts_message_text_from_agent_response() {
