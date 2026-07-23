@@ -58,7 +58,6 @@ export function NewBundleDialog({ onClose }: NewBundleDialogProps) {
   const [error, setError] = useState<string | null>(null);
 
   const folder = slugify(name);
-  const busy = step.kind === "planning" || step.kind === "generating";
   const setupReady =
     name.trim() !== "" &&
     parent !== null &&
@@ -237,8 +236,8 @@ export function NewBundleDialog({ onClose }: NewBundleDialogProps) {
   };
 
   return (
-    <div className="dialog-overlay" onClick={busy ? undefined : onClose}>
-      <div className="dialog" onClick={(e) => e.stopPropagation()}>
+    <div className="dialog-overlay">
+      <div className="dialog">
         <h3>New bundle</h3>
 
         {step.kind === "setup" && (
