@@ -2,9 +2,9 @@
 
 - **Branch:** `feat/perplexity-website-import`
 - **Baseline:** `origin/main` (`f0123d1`)
-- **Scope:** committed branch diff plus the pending CodeMirror diagnostic-refresh fix
+- **Scope:** committed branch diff plus the CodeMirror diagnostic-refresh fix and recent-project remote-location display
 - **Reviewed:** 2026-07-23
-- **Security-sensitive diff SHA-256:** `33b9cfa33a9f3c112f021ccd8034d968b6abd735565b9f62641ad37b74e52c07`
+- **Security-sensitive diff SHA-256:** `a92d5a0bc26d921b867cef757d83a51e679e0b1d45dc9c9c138e8ccfa0231b3e`
 - **Verdict:** PASS
 
 ## Trust boundaries reviewed
@@ -24,6 +24,7 @@
 - React renders agent and website text through normal JSX; no `dangerouslySetInnerHTML`, `innerHTML`, shell execution, SQL construction, unsafe deserialization, or dynamic code evaluation was introduced.
 - Retrieved website instructions are explicitly treated as untrusted data in both planning and drafting prompts. Prompt injection is not classified as a code vulnerability under the review policy, but the implementation still includes a defense-in-depth instruction boundary.
 - The diagnostic refresh change dispatches a typed CodeMirror state effect and calls `forceLinting`; it introduces no new input-to-security-sensitive sink.
+- Recent-project remote locations are queried through the existing argument-safe Git boundary. Display formatting removes URL credentials and normalizes HTTPS/SSH GitHub remotes before rendering; lookup failures fall back to the local path.
 - Secret-pattern scanning found no credentials, private keys, or provider tokens in the branch diff.
 
 ## Findings
