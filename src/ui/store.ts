@@ -6,6 +6,10 @@ import { rewriteLinksForRename } from "../core/rename";
 import { removeRecentPath } from "../core/recents";
 import { generateSkeleton, instantiateTemplate } from "../core/template";
 import {
+  parseThemePreference,
+  type ThemePreference,
+} from "../core/theme";
+import {
   appendUpdateLog,
   createUpdateLog,
   ROOT_UPDATE_LOG,
@@ -53,6 +57,7 @@ export type ViewMode = "edit" | "split" | "preview";
 export type TreeMode = "folder" | "type";
 
 const TREE_MODE_KEY = "okf-editor.tree-mode";
+const THEME_KEY = "okf-editor.theme";
 
 function loadTreeMode(): TreeMode {
   return localStorage.getItem(TREE_MODE_KEY) === "type" ? "type" : "folder";
@@ -86,9 +91,11 @@ interface AppState {
 
   /** App settings dialog (AI key + model). Reachable from every screen. */
   settingsOpen: boolean;
+  themePreference: ThemePreference;
   aiReady: boolean;
   perplexityReady: boolean;
   setSettingsOpen(open: boolean): void;
+  setThemePreference(preference: ThemePreference): void;
   refreshAiStatus(): Promise<void>;
   refreshPerplexityStatus(): Promise<void>;
 
@@ -306,10 +313,16 @@ export const useStore = create<AppState>((set, get) => {
     schemaError: null,
     problems: new Map(),
     settingsOpen: false,
+    themePreference: parseThemePreference(localStorage.getItem(THEME_KEY)),
     aiReady: false,
     perplexityReady: false,
 
     setSettingsOpen: (open) => set({ settingsOpen: open }),
+
+    setThemePreference: (preference) => {
+      localStorage.setItem(THEME_KEY, preference);
+      set({ themePreference: preference });
+    },
 
     refreshAiStatus: async () => {
       try {

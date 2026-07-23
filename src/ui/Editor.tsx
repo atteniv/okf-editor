@@ -9,10 +9,14 @@ import {
   lintGutter,
   type Diagnostic as CmDiagnostic,
 } from "@codemirror/lint";
+import { Compartment } from "@codemirror/state";
+import { oneDark } from "@codemirror/theme-one-dark";
 import { EditorView } from "@codemirror/view";
 import { basicSetup } from "codemirror";
 import { useEffect, useRef } from "react";
 import type { Diagnostic, QuickFix } from "../core/lint";
+import { useStore } from "./store";
+import { useResolvedTheme } from "./useResolvedTheme";
 
 interface EditorProps {
   /** Doc identity — remounting state when the user switches documents. */
@@ -46,6 +50,9 @@ export function Editor({
 }: EditorProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const viewRef = useRef<EditorView | null>(null);
+  const themeCompartmentRef = useRef(new Compartment());
+  const themePreference = useStore((state) => state.themePreference);
+  const resolvedTheme = useResolvedTheme(themePreference);
   const onChangeRef = useRef(onChange);
   const diagnosticsRef = useRef(diagnostics);
   const linkTargetsRef = useRef(linkTargets);
@@ -65,6 +72,7 @@ export function Editor({
       parent: containerRef.current,
       extensions: [
         basicSetup,
+        themeCompartmentRef.current.of(resolvedTheme === "dark" ? oneDark : []),
         markdown(),
         EditorView.lineWrapping,
         EditorView.updateListener.of((update) => {
@@ -148,6 +156,16 @@ export function Editor({
     // editor is the source of truth; external updates come through below.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [docPath]);
+
+  useEffect(() => {
+    const view = viewRef.current;
+    if (!view) return;
+    view.dispatch({
+      effects: themeCompartmentRef.current.reconfigure(
+        resolvedTheme === "dark" ? oneDark : [],
+      ),
+    });
+  }, [resolvedTheme]);
 
   // External value changes (reload-from-disk) — replace content in place.
   useEffect(() => {

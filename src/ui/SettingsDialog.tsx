@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { tauriPlatform as platform } from "../platform";
+import type { ThemePreference } from "../core/theme";
 import { loadModel, OPENROUTER_KEY_NAME, saveModel } from "./aiClient";
+import { useStore } from "./store";
 
 const GITHUB_KEY_NAME = "github-token";
 const PERPLEXITY_KEY_NAME = "perplexity-api-key";
@@ -34,6 +36,8 @@ export function SettingsDialog({ onClose, onChanged }: SettingsDialogProps) {
     <div className="dialog-overlay" onClick={onClose}>
       <div className="dialog settings-dialog" onClick={(e) => e.stopPropagation()}>
         <h3>Settings</h3>
+        <AppearanceSection />
+        <hr className="settings-divider" />
         <GithubSection onChanged={onChanged} />
         <hr className="settings-divider" />
         <AiSection onChanged={onChanged} />
@@ -44,6 +48,34 @@ export function SettingsDialog({ onClose, onChanged }: SettingsDialogProps) {
         </div>
       </div>
     </div>
+  );
+}
+
+function AppearanceSection() {
+  const preference = useStore((state) => state.themePreference);
+  const setPreference = useStore((state) => state.setThemePreference);
+
+  return (
+    <section className="settings-section">
+      <h4>Appearance</h4>
+      <label>
+        Theme
+        <select
+          value={preference}
+          onChange={(event) =>
+            setPreference(event.target.value as ThemePreference)
+          }
+        >
+          <option value="system">System</option>
+          <option value="light">Light</option>
+          <option value="dark">Dark</option>
+        </select>
+      </label>
+      <p className="dialog-hint">
+        System follows your operating system and updates automatically when its
+        appearance changes.
+      </p>
+    </section>
   );
 }
 
