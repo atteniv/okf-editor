@@ -64,6 +64,18 @@ export function NewBundleDialog({ onClose }: NewBundleDialogProps) {
     (mode === "sample" ||
       (mode === "ai" && description.trim() !== "") ||
       (mode === "website" && websiteUrl.trim() !== "" && perplexityReady));
+  const setupBlocker =
+    name.trim() === ""
+      ? "Enter a bundle name to continue."
+      : parent === null
+        ? "Choose a destination folder above to continue."
+        : mode === "ai" && description.trim() === ""
+          ? "Describe what the bundle should contain."
+          : mode === "website" && websiteUrl.trim() === ""
+            ? "Enter the website URL to research."
+            : mode === "website" && !perplexityReady
+              ? "Connect Perplexity in Settings to continue."
+              : null;
 
   /** Write files into the new bundle, init git, commit, open. */
   const finalize = async (files: { path: string; content: string }[]) => {
@@ -358,11 +370,15 @@ export function NewBundleDialog({ onClose }: NewBundleDialogProps) {
             )}
 
             {error !== null && <p className="dialog-error">{error}</p>}
+            {!setupReady && setupBlocker !== null && (
+              <p className="dialog-hint setup-blocker">{setupBlocker}</p>
+            )}
             <div className="dialog-actions">
               <button onClick={onClose}>Cancel</button>
               <button
                 className="primary"
                 disabled={!setupReady}
+                title={setupBlocker ?? undefined}
                 onClick={() => {
                   if (mode === "sample") createSample();
                   else if (mode === "website") void startWebsitePlanning();
