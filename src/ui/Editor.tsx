@@ -5,14 +5,21 @@ import {
 } from "@codemirror/autocomplete";
 import { markdown } from "@codemirror/lang-markdown";
 import {
+  forceLinting,
   linter,
   lintGutter,
   type Diagnostic as CmDiagnostic,
 } from "@codemirror/lint";
+import { Compartment, StateEffect } from "@codemirror/state";
+import { oneDark } from "@codemirror/theme-one-dark";
 import { EditorView } from "@codemirror/view";
 import { basicSetup } from "codemirror";
 import { useEffect, useRef } from "react";
 import type { Diagnostic, QuickFix } from "../core/lint";
+import { useStore } from "./store";
+import { useResolvedTheme } from "./useResolvedTheme";
+
+const refreshLintEffect = StateEffect.define<void>();
 
 interface EditorProps {
   /** Doc identity — remounting state when the user switches documents. */
@@ -46,16 +53,30 @@ export function Editor({
 }: EditorProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const viewRef = useRef<EditorView | null>(null);
+  const themeCompartmentRef = useRef(new Compartment());
+  const themePreference = useStore((state) => state.themePreference);
+  const resolvedTheme = useResolvedTheme(themePreference);
   const onChangeRef = useRef(onChange);
   const diagnosticsRef = useRef(diagnostics);
   const linkTargetsRef = useRef(linkTargets);
   const onQuickFixRef = useRef(onQuickFix);
   useEffect(() => {
     onChangeRef.current = onChange;
-    diagnosticsRef.current = diagnostics;
     linkTargetsRef.current = linkTargets;
     onQuickFixRef.current = onQuickFix;
-  }, [onChange, diagnostics, linkTargets, onQuickFix]);
+  }, [onChange, linkTargets, onQuickFix]);
+
+  // Lint inputs come from bundle state rather than editor transactions.
+  // Explicitly invalidate CodeMirror when, for example, creating a missing
+  // linked document resolves a diagnostic without changing the open text.
+  useEffect(() => {
+    diagnosticsRef.current = diagnostics;
+    const view = viewRef.current;
+    if (view !== null) {
+      view.dispatch({ effects: refreshLintEffect.of(undefined) });
+      forceLinting(view);
+    }
+  }, [diagnostics]);
 
   // (Re)create the view when the document identity changes.
   useEffect(() => {
@@ -65,6 +86,7 @@ export function Editor({
       parent: containerRef.current,
       extensions: [
         basicSetup,
+        themeCompartmentRef.current.of(resolvedTheme === "dark" ? oneDark : []),
         markdown(),
         EditorView.lineWrapping,
         EditorView.updateListener.of((update) => {
@@ -103,7 +125,15 @@ export function Editor({
                 };
               });
           },
-          { delay: 300 },
+          {
+            delay: 300,
+            needsRefresh: (update) =>
+              update.transactions.some((transaction) =>
+                transaction.effects.some((effect) =>
+                  effect.is(refreshLintEffect),
+                ),
+              ),
+          },
         ),
         autocompletion({
           override: [
@@ -148,6 +178,16 @@ export function Editor({
     // editor is the source of truth; external updates come through below.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [docPath]);
+
+  useEffect(() => {
+    const view = viewRef.current;
+    if (!view) return;
+    view.dispatch({
+      effects: themeCompartmentRef.current.reconfigure(
+        resolvedTheme === "dark" ? oneDark : [],
+      ),
+    });
+  }, [resolvedTheme]);
 
   // External value changes (reload-from-disk) — replace content in place.
   useEffect(() => {

@@ -1,9 +1,14 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   generateDocMessages,
   parseBundlePlan,
+  parseWebsitePlan,
   planBundleMessages,
+  renderWebsiteDocument,
+  websiteDocPrompt,
+  websitePlanPrompt,
   type PlannedDoc,
+  type WebsitePlannedDoc,
 } from "../core/ai";
 import { starterBundleFiles } from "../core/starter";
 import { slugify } from "../core/template";
@@ -15,10 +20,18 @@ interface NewBundleDialogProps {
   onClose: () => void;
 }
 
+type DraftProvider = "openrouter" | "perplexity";
+
 type Step =
   | { kind: "setup" }
-  | { kind: "planning" }
-  | { kind: "review"; plan: PlannedDoc[]; deselected: Set<string> }
+  | { kind: "planning"; provider: DraftProvider }
+  | {
+      kind: "review";
+      plan: PlannedDoc[];
+      provider: DraftProvider;
+      websiteUrl?: string;
+      deselected: Set<string>;
+    }
   | { kind: "generating"; plan: PlannedDoc[]; done: number; current: string };
 
 function describe(err: unknown): string {
@@ -27,21 +40,90 @@ function describe(err: unknown): string {
   return detail ?? String(err);
 }
 
+const RESEARCH_UPDATES = [
+  { after: 0, text: "Request sent to Perplexity." },
+  { after: 8, text: "The research agent is processing the request." },
+  { after: 25, text: "No response yet — continuing to wait." },
+  { after: 45, text: "Website research can take one or two minutes." },
+  { after: 90, text: "Still working — the request has not timed out." },
+];
+
+function PlanningProgress({ provider }: { provider: DraftProvider }) {
+  const [elapsed, setElapsed] = useState(0);
+
+  useEffect(() => {
+    const timer = window.setInterval(() => setElapsed((value) => value + 1), 1000);
+    return () => window.clearInterval(timer);
+  }, []);
+
+  const isResearch = provider === "perplexity";
+  const updates = isResearch
+    ? RESEARCH_UPDATES.filter((update) => elapsed >= update.after)
+    : [{ after: 0, text: "Waiting for the model to return a bundle plan." }];
+
+  return (
+    <div className="planning-progress" role="status" aria-live="polite">
+      <div className="planning-heading">
+        <span className="planning-spinner" aria-hidden="true" />
+        <strong>
+          {isResearch ? "Researching website…" : "Planning bundle…"}
+        </strong>
+        <span className="planning-elapsed">{elapsed}s</span>
+      </div>
+      <progress className="planning-indeterminate" />
+      <div className="planning-activity" aria-label="Planning activity">
+        {updates.map((update) => (
+          <p key={update.after}>
+            <span>{update.after === 0 ? "Now" : `${update.after}s`}</span>
+            {update.text}
+          </p>
+        ))}
+      </div>
+      {isResearch && (
+        <p className="dialog-hint planning-note">
+          Perplexity returns the researched plan when the request completes.
+        </p>
+      )}
+    </div>
+  );
+}
+
 export function NewBundleDialog({ onClose }: NewBundleDialogProps) {
-  const { openBundle, schema, aiReady } = useStore();
+  const {
+    openBundle,
+    schema,
+    aiReady,
+    perplexityReady,
+    setSettingsOpen,
+  } = useStore();
   const [name, setName] = useState("");
   const [parent, setParent] = useState<string | null>(null);
-  const [mode, setMode] = useState<"sample" | "ai">("sample");
+  const [mode, setMode] = useState<"sample" | "ai" | "website">("sample");
   const [description, setDescription] = useState("");
+  const [websiteUrl, setWebsiteUrl] = useState("");
+  const [websiteInstructions, setWebsiteInstructions] = useState("");
   const [step, setStep] = useState<Step>({ kind: "setup" });
   const [error, setError] = useState<string | null>(null);
 
   const folder = slugify(name);
-  const busy = step.kind === "planning" || step.kind === "generating";
   const setupReady =
     name.trim() !== "" &&
     parent !== null &&
-    (mode === "sample" || description.trim() !== "");
+    (mode === "sample" ||
+      (mode === "ai" && description.trim() !== "") ||
+      (mode === "website" && websiteUrl.trim() !== "" && perplexityReady));
+  const setupBlocker =
+    name.trim() === ""
+      ? "Enter a bundle name to continue."
+      : parent === null
+        ? "Choose a destination folder above to continue."
+        : mode === "ai" && description.trim() === ""
+          ? "Describe what the bundle should contain."
+          : mode === "website" && websiteUrl.trim() === ""
+            ? "Enter the website URL to research."
+            : mode === "website" && !perplexityReady
+              ? "Connect Perplexity in Settings to continue."
+              : null;
 
   /** Write files into the new bundle, init git, commit, open. */
   const finalize = async (files: { path: string; content: string }[]) => {
@@ -76,7 +158,7 @@ export function NewBundleDialog({ onClose }: NewBundleDialogProps) {
       return;
     }
     setError(null);
-    setStep({ kind: "planning" });
+    setStep({ kind: "planning", provider: "openrouter" });
     let text = "";
     await streamChat(
       model,
@@ -91,7 +173,12 @@ export function NewBundleDialog({ onClose }: NewBundleDialogProps) {
             setError("The model didn't return a usable plan — try again.");
             setStep({ kind: "setup" });
           } else {
-            setStep({ kind: "review", plan, deselected: new Set() });
+            setStep({
+              kind: "review",
+              plan,
+              provider: "openrouter",
+              deselected: new Set(),
+            });
           }
         },
         onError: (message) => {
@@ -102,36 +189,106 @@ export function NewBundleDialog({ onClose }: NewBundleDialogProps) {
     );
   };
 
-  const generate = async (plan: PlannedDoc[]) => {
-    const model = loadModel();
+  const startWebsitePlanning = async () => {
+    const url = websiteUrl.trim();
+    setError(null);
+    setStep({ kind: "planning", provider: "perplexity" });
+    try {
+      const text = await platform.perplexityAgent(
+        url,
+        websitePlanPrompt(
+          schema,
+          name.trim(),
+          url,
+          websiteInstructions.trim(),
+        ),
+        true,
+      );
+      const result = parseWebsitePlan(text, schema, url);
+      if (result === null) {
+        setError(
+          "Perplexity returned a plan that wasn't safe or valid for this bundle — try again.",
+        );
+        setStep({ kind: "setup" });
+        return;
+      }
+      setStep({
+        kind: "review",
+        plan: result.docs,
+        provider: "perplexity",
+        websiteUrl: url,
+        deselected: new Set(),
+      });
+    } catch (err) {
+      setError(describe(err));
+      setStep({ kind: "setup" });
+    }
+  };
+
+  const generate = async (
+    plan: PlannedDoc[],
+    provider: DraftProvider,
+    sourceWebsiteUrl?: string,
+  ) => {
+    const model = provider === "openrouter" ? loadModel() : "";
     const files: { path: string; content: string }[] = [];
     for (let i = 0; i < plan.length; i++) {
       const doc = plan[i];
       setStep({ kind: "generating", plan, done: i, current: doc.title });
-      const body = await new Promise<string | null>((resolve) => {
-        let text = "";
-        void streamChat(
-          model,
-          generateDocMessages(schema, doc.type, doc.title, doc.brief),
-          {
-            onDelta: (t) => {
-              text += t;
+      let body: string | null;
+      if (provider === "perplexity") {
+        const websiteDoc = doc as WebsitePlannedDoc;
+        if (
+          sourceWebsiteUrl === undefined ||
+          !Array.isArray(websiteDoc.sourceUrls) ||
+          websiteDoc.sourceUrls.length === 0
+        ) {
+          setError(`${doc.path}: the approved source list is missing.`);
+          setStep({ kind: "setup" });
+          return;
+        }
+        try {
+          body = await platform.perplexityAgent(
+            sourceWebsiteUrl,
+            websiteDocPrompt(schema, websiteDoc),
+            false,
+          );
+        } catch (err) {
+          setError(`${doc.path}: ${describe(err)}`);
+          body = null;
+        }
+      } else {
+        body = await new Promise<string | null>((resolve) => {
+          let text = "";
+          void streamChat(
+            model,
+            generateDocMessages(schema, doc.type, doc.title, doc.brief),
+            {
+              onDelta: (textDelta) => {
+                text += textDelta;
+              },
+              onDone: () => resolve(text),
+              onError: (message) => {
+                setError(`${doc.path}: ${message}`);
+                resolve(null);
+              },
             },
-            onDone: () => resolve(text),
-            onError: (message) => {
-              setError(`${doc.path}: ${message}`);
-              resolve(null);
-            },
-          },
-        );
-      });
-      if (body === null) {
+          );
+        });
+      }
+      if (body === null || body.trim() === "") {
+        if (body !== null) {
+          setError(`${doc.path}: Perplexity returned an empty document.`);
+        }
         setStep({ kind: "setup" });
         return;
       }
       files.push({
         path: doc.path,
-        content: `---\ntype: ${doc.type}\ntitle: ${JSON.stringify(doc.title)}\n---\n\n# ${doc.title}\n\n${body.trim()}\n`,
+        content:
+          provider === "perplexity"
+            ? renderWebsiteDocument(doc as WebsitePlannedDoc, body)
+            : `---\ntype: ${doc.type}\ntitle: ${JSON.stringify(doc.title)}\n---\n\n# ${doc.title}\n\n${body.trim()}\n`,
       });
     }
     setStep({ kind: "generating", plan, done: plan.length, current: "" });
@@ -139,8 +296,8 @@ export function NewBundleDialog({ onClose }: NewBundleDialogProps) {
   };
 
   return (
-    <div className="dialog-overlay" onClick={busy ? undefined : onClose}>
-      <div className="dialog" onClick={(e) => e.stopPropagation()}>
+    <div className="dialog-overlay">
+      <div className="dialog">
         <h3>New bundle</h3>
 
         {step.kind === "setup" && (
@@ -207,16 +364,74 @@ export function NewBundleDialog({ onClose }: NewBundleDialogProps) {
                 />
               </label>
             )}
+            <label className="fm-field-check radio-row">
+              <input
+                type="radio"
+                checked={mode === "website"}
+                disabled={!perplexityReady}
+                onChange={() => setMode("website")}
+              />
+              Research a website — Perplexity creates a source-grounded bundle
+              {!perplexityReady && (
+                <span className="dialog-hint"> (connect Perplexity in Settings)</span>
+              )}
+            </label>
+            {!perplexityReady && (
+              <button
+                type="button"
+                className="link-button integration-setup-link"
+                onClick={() => setSettingsOpen(true)}
+              >
+                Connect Perplexity…
+              </button>
+            )}
+            {mode === "website" && (
+              <>
+                <label>
+                  Website URL
+                  <input
+                    autoFocus
+                    type="url"
+                    value={websiteUrl}
+                    placeholder="https://example.com"
+                    onChange={(event) => setWebsiteUrl(event.target.value)}
+                  />
+                </label>
+                <label>
+                  What should the bundle emphasize? <span>(optional)</span>
+                  <textarea
+                    value={websiteInstructions}
+                    rows={2}
+                    placeholder="e.g. Focus on services, operating policies, and customer guidance"
+                    onChange={(event) =>
+                      setWebsiteInstructions(event.target.value)
+                    }
+                  />
+                </label>
+                <p className="dialog-hint website-privacy-note">
+                  Perplexity will receive this URL, retrieved public website
+                  content, the bundle schema, and your instructions. Research is
+                  limited to this website&apos;s domain and up to 10 fetched URLs
+                  per tool call. API usage is billed by Perplexity.
+                </p>
+              </>
+            )}
 
             {error !== null && <p className="dialog-error">{error}</p>}
+            {!setupReady && setupBlocker !== null && (
+              <p className="dialog-hint setup-blocker">{setupBlocker}</p>
+            )}
             <div className="dialog-actions">
               <button onClick={onClose}>Cancel</button>
               <button
                 className="primary"
                 disabled={!setupReady}
-                onClick={() =>
-                  mode === "sample" ? createSample() : void startPlanning()
-                }
+                title={setupBlocker ?? undefined}
+                onClick={() => {
+                  if (mode === "sample") createSample();
+                  else if (mode === "website") void startWebsitePlanning();
+                  else void startPlanning();
+                }}
               >
                 {mode === "sample" ? "Create" : "Plan bundle"}
               </button>
@@ -225,14 +440,14 @@ export function NewBundleDialog({ onClose }: NewBundleDialogProps) {
         )}
 
         {step.kind === "planning" && (
-          <p className="dialog-hint">Asking the model to plan the bundle…</p>
+          <PlanningProgress provider={step.provider} />
         )}
 
         {step.kind === "review" && (
           <>
             <p className="dialog-hint">
               Proposed structure — untick anything you don&apos;t want, then
-              generate.
+              generate. The required index stays selected.
             </p>
             <ul className="plan-list">
               {step.plan.map((doc) => (
@@ -241,6 +456,7 @@ export function NewBundleDialog({ onClose }: NewBundleDialogProps) {
                     <input
                       type="checkbox"
                       checked={!step.deselected.has(doc.path)}
+                      disabled={doc.path === "index.md"}
                       onChange={(e) => {
                         const next = new Set(step.deselected);
                         if (e.target.checked) next.delete(doc.path);
@@ -251,7 +467,11 @@ export function NewBundleDialog({ onClose }: NewBundleDialogProps) {
                     <span className="plan-title">
                       {doc.title} <code>{doc.path}</code>
                     </span>
-                    <span className="plan-brief">{doc.brief}</span>
+                    <span className="plan-brief">
+                      {doc.brief}
+                      {step.provider === "perplexity" &&
+                        ` · ${(doc as WebsitePlannedDoc).sourceUrls.length} source${(doc as WebsitePlannedDoc).sourceUrls.length === 1 ? "" : "s"}`}
+                    </span>
                   </label>
                 </li>
               ))}
@@ -265,6 +485,8 @@ export function NewBundleDialog({ onClose }: NewBundleDialogProps) {
                 onClick={() =>
                   void generate(
                     step.plan.filter((d) => !step.deselected.has(d.path)),
+                    step.provider,
+                    step.websiteUrl,
                   )
                 }
               >

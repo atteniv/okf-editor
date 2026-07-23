@@ -31,6 +31,7 @@ trash = "5.2.6"
 reqwest = { version = "0.13.4", features = ["json", "stream"] }
 futures-util = "0.3.32"
 keyring = { version = "3", features = ["apple-native", "windows-native", "sync-secret-service"] }
+url = "2.5.7"
 
 [dev-dependencies]
 tempfile = "3.27.0"

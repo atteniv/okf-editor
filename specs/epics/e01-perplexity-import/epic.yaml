@@ -1,0 +1,8 @@
+epic_id: e01
+name: Perplexity website import
+status: verification
+stories:
+  - id: e01s01
+    title: Create an OKF bundle from a website
+    bcps: 6
+    status: passing

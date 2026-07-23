@@ -2610,6 +2610,7 @@ dependencies = [
  "tauri-plugin-opener",
  "tempfile",
  "trash",
+ "url",
 ]
 
 [[package]]

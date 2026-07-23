@@ -57,6 +57,13 @@ export const tauriPlatform: Platform = {
   onAiStream: (handler) =>
     listen<AiStreamEvent>("okf://ai-stream", (event) => handler(event.payload)),
 
+  perplexityKeyStatus: () => invoke<boolean>("perplexity_key_status"),
+
+  perplexityVerify: () => invoke<void>("perplexity_verify"),
+
+  perplexityAgent: (websiteUrl, input, planning) =>
+    invoke<string>("perplexity_agent", { websiteUrl, input, planning }),
+
   onOpenSettings: (handler) => listen("okf://open-settings", () => handler()),
 
   openUrl: (url) => openUrl(url),

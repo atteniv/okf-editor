@@ -6,6 +6,7 @@ mod error;
 mod fs;
 mod git;
 mod github;
+mod perplexity;
 mod secrets;
 mod watch;
 
@@ -81,6 +82,9 @@ pub fn run() {
             ai::ai_models,
             ai::ai_key_status,
             ai::ai_verify,
+            perplexity::perplexity_key_status,
+            perplexity::perplexity_verify,
+            perplexity::perplexity_agent,
             git::git_detect,
             git::git_status,
             git::git_commit,

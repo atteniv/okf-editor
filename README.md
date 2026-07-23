@@ -84,8 +84,19 @@ browser-bundled desktop application.
 ### Optional AI assistance
 
 Bring your own [OpenRouter](https://openrouter.ai) key to generate new documents,
-chat with the open document as context, or assist with merge conflicts. AI is
-off by default; non-AI editing works without an account or network connection.
+chat with the open document as context, or assist with merge conflicts.
+
+An optional [Perplexity Agent API](https://docs.perplexity.ai/docs/agent-api/quickstart)
+key adds **Research a website** to the New Bundle dialog. Perplexity reads the
+canonical OKF specification, discovers and fetches relevant public pages from the
+supplied domain, and proposes a source-grounded bundle for review before any files
+are written. Research is bounded to one website and at most ten fetched URLs per
+tool call; it does not bypass logins or paywalls. Generated documents retain their
+source links.
+
+Both integrations are off by default. Non-AI editing works without an account or
+network connection. Perplexity API usage is billed separately from a consumer
+Perplexity Pro subscription.
 
 ## Project status
 
