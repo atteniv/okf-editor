@@ -1,4 +1,9 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import {
+  formatRecentLocation,
+  loadRecentRemotes,
+} from "../core/recents";
+import { tauriPlatform as platform } from "../platform";
 import { CloneDialog } from "./CloneDialog";
 import { NewBundleDialog } from "./NewBundleDialog";
 import { useStore } from "./store";
@@ -7,6 +12,21 @@ export function StartScreen() {
   const { openFolder, openBundle, removeRecent, recents, error } = useStore();
   const [cloning, setCloning] = useState(false);
   const [creating, setCreating] = useState(false);
+  const [recentRemotes, setRecentRemotes] = useState<
+    Record<string, string | null>
+  >({});
+
+  useEffect(() => {
+    let active = true;
+    void loadRecentRemotes(recents, (root) =>
+      platform.gitRemoteUrl(root),
+    ).then((remotes) => {
+      if (active) setRecentRemotes(remotes);
+    });
+    return () => {
+      active = false;
+    };
+  }, [recents]);
 
   return (
     <main className="start-screen">
@@ -36,15 +56,19 @@ export function StartScreen() {
           <ul>
             {recents.map((root) => {
               const name = root.split(/[\\/]/).at(-1) || root;
+              const remote = recentRemotes[root];
+              const location = formatRecentLocation(root, remote);
               return (
                 <li key={root}>
                   <button
                     className="recent-open"
                     onClick={() => void openBundle(root)}
-                    title={root}
+                    title={location}
                   >
                     {name}
-                    <span className="path">{root}</span>
+                    <span className="path">
+                      {remote ? `Remote: ${location}` : location}
+                    </span>
                   </button>
                   <button
                     className="recent-remove"
