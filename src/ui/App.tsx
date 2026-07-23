@@ -5,16 +5,28 @@ import { SettingsDialog } from "./SettingsDialog";
 import { BundleView } from "./BundleView";
 import { StartScreen } from "./StartScreen";
 import { useStore } from "./store";
+import { useResolvedTheme } from "./useResolvedTheme";
 
 function App() {
   const view = useStore((state) => state.view);
   const settingsOpen = useStore((state) => state.settingsOpen);
+  const themePreference = useStore((state) => state.themePreference);
+  const resolvedTheme = useResolvedTheme(themePreference);
   const setSettingsOpen = useStore((state) => state.setSettingsOpen);
   const refreshAiStatus = useStore((state) => state.refreshAiStatus);
+  const refreshPerplexityStatus = useStore(
+    (state) => state.refreshPerplexityStatus,
+  );
+
+  useEffect(() => {
+    document.documentElement.dataset.theme = resolvedTheme;
+    document.documentElement.style.colorScheme = resolvedTheme;
+  }, [resolvedTheme]);
 
   useEffect(() => {
     void refreshAiStatus();
-  }, [refreshAiStatus]);
+    void refreshPerplexityStatus();
+  }, [refreshAiStatus, refreshPerplexityStatus]);
 
   // Native app menu: Settings… (Cmd+,).
   useEffect(() => {
@@ -51,7 +63,10 @@ function App() {
       {settingsOpen && (
         <SettingsDialog
           onClose={() => setSettingsOpen(false)}
-          onChanged={() => void refreshAiStatus()}
+          onChanged={() => {
+            void refreshAiStatus();
+            void refreshPerplexityStatus();
+          }}
         />
       )}
     </>

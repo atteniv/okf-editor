@@ -1,12 +1,32 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import {
+  formatRecentLocation,
+  loadRecentRemotes,
+} from "../core/recents";
+import { tauriPlatform as platform } from "../platform";
 import { CloneDialog } from "./CloneDialog";
 import { NewBundleDialog } from "./NewBundleDialog";
 import { useStore } from "./store";
 
 export function StartScreen() {
-  const { openFolder, openBundle, recents, error } = useStore();
+  const { openFolder, openBundle, removeRecent, recents, error } = useStore();
   const [cloning, setCloning] = useState(false);
   const [creating, setCreating] = useState(false);
+  const [recentRemotes, setRecentRemotes] = useState<
+    Record<string, string | null>
+  >({});
+
+  useEffect(() => {
+    let active = true;
+    void loadRecentRemotes(recents, (root) =>
+      platform.gitRemoteUrl(root),
+    ).then((remotes) => {
+      if (active) setRecentRemotes(remotes);
+    });
+    return () => {
+      active = false;
+    };
+  }, [recents]);
 
   return (
     <main className="start-screen">
@@ -34,14 +54,35 @@ export function StartScreen() {
         <section className="recents">
           <h2>Recent</h2>
           <ul>
-            {recents.map((root) => (
-              <li key={root}>
-                <button onClick={() => void openBundle(root)} title={root}>
-                  {root.split("/").at(-1) || root}
-                  <span className="path">{root}</span>
-                </button>
-              </li>
-            ))}
+            {recents.map((root) => {
+              const name = root.split(/[\\/]/).at(-1) || root;
+              const remote = recentRemotes[root];
+              const location = formatRecentLocation(root, remote);
+              return (
+                <li key={root}>
+                  <button
+                    className="recent-open"
+                    onClick={() => void openBundle(root)}
+                    title={location}
+                  >
+                    {name}
+                    <span className="path">
+                      {remote ? `Remote: ${location}` : location}
+                    </span>
+                  </button>
+                  <button
+                    className="recent-remove"
+                    onClick={() => removeRecent(root)}
+                    aria-label={`Remove ${name} from recent projects`}
+                    title="Remove from recents"
+                  >
+                    <svg aria-hidden="true" viewBox="0 0 24 24">
+                      <path d="M4 7h16M9 7V4h6v3m3 0-1 13H7L6 7m4 4v5m4-5v5" />
+                    </svg>
+                  </button>
+                </li>
+              );
+            })}
           </ul>
         </section>
       )}

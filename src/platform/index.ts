@@ -51,6 +51,16 @@ export interface Platform {
   onAiStream(
     handler: (event: AiStreamEvent) => void,
   ): Promise<() => void>;
+
+  // --- Website research (optional Perplexity BYOK via Rust) ---
+  perplexityKeyStatus(): Promise<boolean>;
+  perplexityVerify(): Promise<void>;
+  perplexityAgent(
+    websiteUrl: string,
+    input: string,
+    planning: boolean,
+  ): Promise<string>;
+
   /** Fires when the native Settings… menu item is chosen. */
   onOpenSettings(handler: () => void): Promise<() => void>;
   /** Open a URL in the system browser (webview anchors don't). */

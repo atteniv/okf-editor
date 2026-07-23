@@ -1,0 +1,50 @@
+story_id: e01s01
+title: Create an OKF bundle from a website
+status: passing
+bcps: 6
+tasks:
+  - id: 1
+    description: Add pure website-plan prompts, parsing, validation, and source rendering
+    verify: pnpm test -- src/core/ai.test.ts
+    risk: P0
+    security: high
+    status: passing
+    allure:
+      severity: critical
+      categories: [unit, Security Review]
+  - id: 2
+    description: Add keychain-backed Perplexity Agent API native commands
+    verify: cd src-tauri && cargo fmt --check && cargo clippy --all-targets -- -D warnings && cargo test
+    risk: P0
+    security: high
+    status: passing
+    allure:
+      severity: critical
+      categories: [integration, Security Review]
+  - id: 3
+    description: Add Perplexity settings and provider readiness state
+    verify: pnpm lint && pnpm typecheck
+    risk: P1
+    security: medium
+    status: passing
+    allure:
+      severity: high
+      categories: [UI, Security Review]
+  - id: 4
+    description: Add the reviewed website-to-bundle creation workflow
+    verify: pnpm test && pnpm build
+    risk: P0
+    security: high
+    status: passing
+    allure:
+      severity: critical
+      categories: [UI, integration, Security Review]
+  - id: 5
+    description: Document setup, privacy, limits, and live-key manual verification
+    verify: pnpm lint && git diff --check
+    risk: P2
+    security: low
+    status: passing
+    allure:
+      severity: normal
+      categories: [documentation]

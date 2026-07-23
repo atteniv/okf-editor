@@ -1,0 +1,8 @@
+bugs:
+  - bug_id: BUG-2026-07-23T153710Z
+    date: 2026-07-23
+    severity: medium
+    priority: high
+    scope: editor-diagnostics
+    summary: Created link target leaves stale editor diagnostic
+    file: specs/bugs/BUG-2026-07-23T153710Z-stale-link-diagnostic.md
