@@ -63,12 +63,13 @@ export function StartScreen() {
                   <button
                     className="recent-open"
                     onClick={() => void openBundle(root)}
-                    title={location}
+                    title={root}
                   >
                     {name}
-                    <span className="path">
-                      {remote ? `Remote: ${location}` : location}
-                    </span>
+                    <span className="path">{root}</span>
+                    {remote && (
+                      <span className="path">Remote: {location}</span>
+                    )}
                   </button>
                   <button
                     className="recent-remove"

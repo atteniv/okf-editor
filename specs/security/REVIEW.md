@@ -4,7 +4,7 @@
 - **Baseline:** `origin/main` (`f0123d1`)
 - **Scope:** committed branch diff plus the CodeMirror diagnostic-refresh fix and recent-project remote-location display
 - **Reviewed:** 2026-07-23
-- **Security-sensitive diff SHA-256:** `a92d5a0bc26d921b867cef757d83a51e679e0b1d45dc9c9c138e8ccfa0231b3e`
+- **Security-sensitive diff SHA-256:** `d9232ec240b44c24b438000ddce504f062b456b9d53c06d032aed452c6ac5589`
 - **Verdict:** PASS
 
 ## Trust boundaries reviewed
@@ -24,7 +24,7 @@
 - React renders agent and website text through normal JSX; no `dangerouslySetInnerHTML`, `innerHTML`, shell execution, SQL construction, unsafe deserialization, or dynamic code evaluation was introduced.
 - Retrieved website instructions are explicitly treated as untrusted data in both planning and drafting prompts. Prompt injection is not classified as a code vulnerability under the review policy, but the implementation still includes a defense-in-depth instruction boundary.
 - The diagnostic refresh change dispatches a typed CodeMirror state effect and calls `forceLinting`; it introduces no new input-to-security-sensitive sink.
-- Recent-project remote locations are queried through the existing argument-safe Git boundary. Display formatting removes URL credentials and normalizes HTTPS/SSH GitHub remotes before rendering; lookup failures fall back to the local path.
+- Recent-project remote locations are queried through the existing argument-safe Git boundary. The local path remains visible, while display formatting removes URL credentials and normalizes HTTPS/SSH GitHub remotes before rendering an additional remote line; lookup failures simply omit that line.
 - Secret-pattern scanning found no credentials, private keys, or provider tokens in the branch diff.
 
 ## Findings
