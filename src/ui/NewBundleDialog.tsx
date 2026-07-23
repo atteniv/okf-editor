@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   generateDocMessages,
   parseBundlePlan,
@@ -38,6 +38,54 @@ function describe(err: unknown): string {
   if (err instanceof Error) return err.message;
   const detail = (err as { message?: string } | null)?.message;
   return detail ?? String(err);
+}
+
+const RESEARCH_UPDATES = [
+  { after: 0, text: "Request sent to Perplexity." },
+  { after: 8, text: "The research agent is processing the request." },
+  { after: 25, text: "No response yet — continuing to wait." },
+  { after: 45, text: "Website research can take one or two minutes." },
+  { after: 90, text: "Still working — the request has not timed out." },
+];
+
+function PlanningProgress({ provider }: { provider: DraftProvider }) {
+  const [elapsed, setElapsed] = useState(0);
+
+  useEffect(() => {
+    const timer = window.setInterval(() => setElapsed((value) => value + 1), 1000);
+    return () => window.clearInterval(timer);
+  }, []);
+
+  const isResearch = provider === "perplexity";
+  const updates = isResearch
+    ? RESEARCH_UPDATES.filter((update) => elapsed >= update.after)
+    : [{ after: 0, text: "Waiting for the model to return a bundle plan." }];
+
+  return (
+    <div className="planning-progress" role="status" aria-live="polite">
+      <div className="planning-heading">
+        <span className="planning-spinner" aria-hidden="true" />
+        <strong>
+          {isResearch ? "Researching website…" : "Planning bundle…"}
+        </strong>
+        <span className="planning-elapsed">{elapsed}s</span>
+      </div>
+      <progress className="planning-indeterminate" />
+      <div className="planning-activity" aria-label="Planning activity">
+        {updates.map((update) => (
+          <p key={update.after}>
+            <span>{update.after === 0 ? "Now" : `${update.after}s`}</span>
+            {update.text}
+          </p>
+        ))}
+      </div>
+      {isResearch && (
+        <p className="dialog-hint planning-note">
+          Perplexity returns the researched plan when the request completes.
+        </p>
+      )}
+    </div>
+  );
 }
 
 export function NewBundleDialog({ onClose }: NewBundleDialogProps) {
@@ -392,11 +440,7 @@ export function NewBundleDialog({ onClose }: NewBundleDialogProps) {
         )}
 
         {step.kind === "planning" && (
-          <p className="dialog-hint">
-            {step.provider === "perplexity"
-              ? "Perplexity is reading the OKF specification and researching the website…"
-              : "Asking the model to plan the bundle…"}
-          </p>
+          <PlanningProgress provider={step.provider} />
         )}
 
         {step.kind === "review" && (
