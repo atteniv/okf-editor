@@ -98,11 +98,23 @@ Both integrations are off by default. Non-AI editing works without an account or
 network connection. Perplexity API usage is billed separately from a consumer
 Perplexity Pro subscription.
 
-## Project status
+## Download a preview build
 
-🚀 **Feature-complete for MVP and preparing for v0.1.0.** Signed release builds
-and installers are not yet published. Until then, compile and run the editor from
-source using the instructions below.
+🚀 **Feature-complete for MVP and preparing for v0.1.0.** Early, unsigned
+installers are available on the
+[GitHub Releases page](https://github.com/atteniv/okf-editor/releases). Choose
+the macOS DMG matching your Mac (`aarch64` for Apple Silicon or `x64` for Intel),
+or the Windows installer.
+
+Preview builds are not yet code-signed or notarized:
+
+- **macOS:** after copying the app to Applications and trying to open it, go to
+  **System Settings → Privacy & Security** and choose **Open Anyway**.
+- **Windows:** if SmartScreen appears, choose **More info → Run anyway**.
+
+Only install a preview downloaded from the official `atteniv/okf-editor`
+Releases page. Signing and notarization are planned if early-user demand
+justifies the distribution setup.
 
 See [`PROPOSAL.md`](PROPOSAL.md) for product rationale,
 [`docs/DESIGN.md`](docs/DESIGN.md) for architecture, and
