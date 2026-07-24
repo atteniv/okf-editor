@@ -220,6 +220,91 @@ button {
   background: var(--border);
 }
 
+.start-screen .sample-action {
+  border-color: color-mix(in srgb, var(--special) 45%, transparent);
+  color: var(--special);
+}
+
+.sample-dialog {
+  width: min(40rem, calc(100vw - 2rem));
+  max-height: min(85vh, 48rem);
+  overflow-y: auto;
+  text-align: left;
+}
+
+.sample-dialog h3 {
+  margin-bottom: 0.25rem;
+}
+
+.sample-options {
+  display: grid;
+  gap: 0.6rem;
+  margin: 1rem 0;
+}
+
+.sample-option {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0.75rem;
+  align-items: start;
+  padding: 0.8rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.sample-option:hover,
+.sample-option.selected {
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 7%, transparent);
+}
+
+.sample-option input {
+  margin-top: 0.2rem;
+}
+
+.sample-option-copy {
+  display: grid;
+  gap: 0.25rem;
+}
+
+.sample-option-copy strong {
+  font-size: 0.9rem;
+}
+
+.sample-option-copy > span {
+  color: var(--muted);
+  font-size: 0.8rem;
+  line-height: 1.4;
+}
+
+.sample-option-copy small {
+  color: var(--muted);
+  font-size: 0.72rem;
+}
+
+.sample-option-copy a {
+  color: var(--accent);
+}
+
+.sample-destination {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding-top: 0.25rem;
+}
+
+.sample-destination .dest-path {
+  flex: 1;
+}
+
+@media (max-width: 600px) {
+  .sample-destination {
+    align-items: stretch;
+    flex-direction: column;
+  }
+}
+
 .settings-section h4 {
   margin: 0 0 0.4rem;
   font-size: 0.85rem;
@@ -2241,4 +2326,22 @@ body.resizing-v {
   background: var(--danger);
   border-color: var(--danger);
   color: var(--on-danger);
+}
+
+/* Sample cards are labels, but intentionally use a card layout rather than
+   the stacked field layout shared by ordinary dialog labels. */
+.dialog .sample-option {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  flex-direction: initial;
+  gap: 0.75rem;
+  margin-bottom: 0;
+  color: CanvasText;
+}
+
+.dialog .sample-option input[type="radio"] {
+  width: auto;
+  margin: 0.2rem 0 0;
+  padding: 0;
+  border: initial;
 }

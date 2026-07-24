@@ -1,0 +1,22 @@
+[
+  ".okf-editor.json",
+  "LICENSE-GOOGLE-OKF.txt",
+  "SOURCE.md",
+  "datasets/ga4_obfuscated_sample_ecommerce.md",
+  "datasets/index.md",
+  "index.md",
+  "references/index.md",
+  "references/joins/events___ads_clickstats.md",
+  "references/joins/index.md",
+  "references/metrics/avg_pageviews.md",
+  "references/metrics/avg_spend_per_purchase_session_by_user.md",
+  "references/metrics/avg_transactions_per_purchaser.md",
+  "references/metrics/day_count.md",
+  "references/metrics/event_count.md",
+  "references/metrics/index.md",
+  "references/metrics/new_user_count.md",
+  "references/metrics/overall_avg_spend_per_purchase_session.md",
+  "references/metrics/user_count.md",
+  "tables/events_.md",
+  "tables/index.md"
+]

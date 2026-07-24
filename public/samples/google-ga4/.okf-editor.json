@@ -1,0 +1,84 @@
+{
+  "$schema": "https://raw.githubusercontent.com/atteniv/okf-editor/main/schemas/okf-editor.schema.json",
+  "types": {
+    "BigQuery Dataset": {
+      "label": "BigQuery Dataset",
+      "fields": [
+        {
+          "key": "title",
+          "kind": "string",
+          "required": true
+        },
+        {
+          "key": "description",
+          "kind": "text"
+        },
+        {
+          "key": "resource",
+          "kind": "string"
+        },
+        {
+          "key": "tags",
+          "kind": "tags"
+        },
+        {
+          "key": "timestamp",
+          "kind": "string"
+        }
+      ]
+    },
+    "BigQuery Table": {
+      "label": "BigQuery Table",
+      "fields": [
+        {
+          "key": "title",
+          "kind": "string",
+          "required": true
+        },
+        {
+          "key": "description",
+          "kind": "text"
+        },
+        {
+          "key": "resource",
+          "kind": "string"
+        },
+        {
+          "key": "tags",
+          "kind": "tags"
+        },
+        {
+          "key": "timestamp",
+          "kind": "string"
+        }
+      ]
+    },
+    "Reference": {
+      "label": "Reference",
+      "fields": [
+        {
+          "key": "title",
+          "kind": "string",
+          "required": true
+        },
+        {
+          "key": "description",
+          "kind": "text"
+        },
+        {
+          "key": "resource",
+          "kind": "string"
+        },
+        {
+          "key": "tags",
+          "kind": "tags"
+        },
+        {
+          "key": "timestamp",
+          "kind": "string"
+        }
+      ]
+    }
+  },
+  "allowUnknownTags": true
+}

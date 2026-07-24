@@ -1,0 +1,13 @@
+[
+  ".okf-editor.json",
+  "LICENSE-GOOGLE-OKF.txt",
+  "SOURCE.md",
+  "datasets/crypto_bitcoin.md",
+  "datasets/index.md",
+  "index.md",
+  "tables/blocks.md",
+  "tables/index.md",
+  "tables/inputs.md",
+  "tables/outputs.md",
+  "tables/transactions.md"
+]
