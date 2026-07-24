@@ -6,6 +6,7 @@ import {
 import { tauriPlatform as platform } from "../platform";
 import { CloneDialog } from "./CloneDialog";
 import { NewBundleDialog } from "./NewBundleDialog";
+import { SampleBundleDialog } from "./SampleBundleDialog";
 import { useStore } from "./store";
 
 export function StartScreen() {
@@ -22,6 +23,7 @@ export function StartScreen() {
   } = useStore();
   const [cloning, setCloning] = useState(false);
   const [creating, setCreating] = useState(false);
+  const [choosingSample, setChoosingSample] = useState(false);
   const [recentRemotes, setRecentRemotes] = useState<
     Record<string, string | null>
   >({});
@@ -53,6 +55,9 @@ export function StartScreen() {
         </button>
         <button className="secondary" onClick={() => setCloning(true)}>
           Clone repository…
+        </button>
+        <button className="secondary sample-action" onClick={() => setChoosingSample(true)}>
+          Try a sample bundle…
         </button>
       </div>
 
@@ -121,6 +126,9 @@ export function StartScreen() {
 
       {cloning && <CloneDialog onClose={() => setCloning(false)} />}
       {creating && <NewBundleDialog onClose={() => setCreating(false)} />}
+      {choosingSample && (
+        <SampleBundleDialog onClose={() => setChoosingSample(false)} />
+      )}
 
       {error && <p className="error">{error}</p>}
 

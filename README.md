@@ -98,6 +98,23 @@ Both integrations are off by default. Non-AI editing works without an account or
 network connection. Perplexity API usage is billed separately from a consumer
 Perplexity Pro subscription.
 
+## Try an included sample
+
+Select **Try a sample bundle…** on the splash page to create an editable copy of:
+
+- **Getting Started Handbook** — a small teaching bundle for documents, links,
+  policies, and the knowledge graph.
+- **Google Bitcoin** — Google's compact BigQuery Bitcoin reference bundle.
+- **Google Analytics 4** — Google's richer e-commerce example with metrics and
+  joins.
+
+Choose a destination folder, select **Create editable copy**, and experiment
+freely. The packaged originals remain unchanged. Google's examples are copied
+from the
+[`GoogleCloudPlatform/knowledge-catalog`](https://github.com/GoogleCloudPlatform/knowledge-catalog/tree/main/okf/bundles)
+repository under Apache 2.0; each copied bundle includes its license and exact
+source provenance.
+
 ## Download a preview build
 
 🚀 **Feature-complete for MVP and preparing for v0.1.0.** Early, unsigned
