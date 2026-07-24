@@ -1,34 +1,43 @@
+# Impact Analysis: Bundled Sample Bundles
+
 ## Target
 
-Optional Perplexity Agent API website-to-OKF import, extending the new-bundle flow, settings, platform seam, native AI boundary, and keychain allowlist.
+Add a first-class “Try a sample bundle” flow from `StartScreen`, backed by new
+sample catalog/loading code and versioned sample assets. Reuse the existing
+platform methods for destination selection, file writes, Git initialization,
+commit, and opening the resulting bundle.
 
-## Dependents (13 shared-platform callers)
+## Dependents (4)
 
-- `src/ui/NewBundleDialog.tsx`: owns sample and AI-assisted bundle creation.
-- `src/ui/SettingsDialog.tsx`: owns BYOK integrations and credential verification.
-- `src/ui/App.tsx` and `src/ui/store.ts`: expose provider readiness to the UI.
-- `src/platform/index.ts` and `src/platform/tauri.ts`: shared native-command contract used throughout the UI.
-- `src-tauri/src/lib.rs`, `ai.rs`, and `secrets.rs`: native command registration, network access, and credential custody.
-
-All platform additions are additive; existing callers and OpenRouter behavior must remain unchanged.
+- `src/ui/StartScreen.tsx`: gains the sample entry point and dialog state.
+- `src/ui/App.css`: gains responsive sample-picker presentation.
+- `src/ui/store.ts`: consumed by the dialog to open the copied bundle; no store
+  interface change is expected.
+- `src/platform/index.ts`: existing `pickFolder`, `gitInit`, `writeDoc`, and
+  `gitCommit` methods are reused; no platform interface or Rust command change.
 
 ## Affected Stories
 
-No release-plan or prior story artifacts exist in this repository. The feature extends the shipped AI-1 new-bundle workflow documented in `docs/PLAN.md`.
+No active release-plan epic owns this work. It extends MVP first-run onboarding
+and the existing starter-bundle workflow.
 
 ## Test Coverage
 
-- `src/core/ai.test.ts`: prompt and AI-output parsing patterns.
-- `src/core/starter.test.ts`: generated starter-bundle behavior.
-- `src-tauri/src/ai.rs`: native API parsing tests.
-- `src-tauri/src/secrets.rs`: key allowlist tests.
-- Gap: React dialog behavior has no component-test harness; UI requires manual Tauri verification.
-- Gap: live Perplexity behavior requires a user-provided, billed API key and cannot run in CI.
+- `src/ui/StartScreen.test.tsx`: covers splash-page discoverability and opening
+  the sample picker.
+- New `src/core/samples.test.ts`: will cover catalog integrity, safe asset paths,
+  and loading every file in a selected sample.
+- New `src/ui/SampleBundleDialog.test.tsx`: will cover creating an editable copy
+  through the public UI/platform seam.
+- Existing full lint, typecheck, test, build, and Rust CI remain regression gates.
 
-## Risk: High
+## Risk: Medium
 
-This is an external, billed AI integration that accepts untrusted website content and extends a shared platform/security boundary, although its APIs are additive and optional.
+Most code and assets are additive, but the workflow writes a multi-file bundle,
+initializes Git, and must work from packaged Tauri assets on macOS and Windows.
 
 ## Recommended action
 
-Proceed behind an optional keychain-backed integration. Use strict structured-output parsing, same-domain research limits, safe path/type validation, plan review before writes, deterministic source attribution, mocked response fixtures, and a manual live-key acceptance test.
+Proceed test-first. Keep packaged samples read-only, always create an editable
+copy in a user-selected folder, preserve Apache-2.0 attribution, and avoid new
+native commands by loading assets through Vite/Tauri’s bundled frontend.
