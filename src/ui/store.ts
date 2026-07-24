@@ -92,10 +92,12 @@ interface AppState {
   /** App settings dialog (AI key + model). Reachable from every screen. */
   settingsOpen: boolean;
   themePreference: ThemePreference;
+  githubReady: boolean;
   aiReady: boolean;
   perplexityReady: boolean;
   setSettingsOpen(open: boolean): void;
   setThemePreference(preference: ThemePreference): void;
+  refreshGithubStatus(): Promise<void>;
   refreshAiStatus(): Promise<void>;
   refreshPerplexityStatus(): Promise<void>;
 
@@ -314,6 +316,7 @@ export const useStore = create<AppState>((set, get) => {
     problems: new Map(),
     settingsOpen: false,
     themePreference: parseThemePreference(localStorage.getItem(THEME_KEY)),
+    githubReady: false,
     aiReady: false,
     perplexityReady: false,
 
@@ -322,6 +325,14 @@ export const useStore = create<AppState>((set, get) => {
     setThemePreference: (preference) => {
       localStorage.setItem(THEME_KEY, preference);
       set({ themePreference: preference });
+    },
+
+    refreshGithubStatus: async () => {
+      try {
+        set({ githubReady: await platform.secretExists("github-token") });
+      } catch {
+        set({ githubReady: false });
+      }
     },
 
     refreshAiStatus: async () => {
