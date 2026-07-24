@@ -13,6 +13,7 @@ function App() {
   const themePreference = useStore((state) => state.themePreference);
   const resolvedTheme = useResolvedTheme(themePreference);
   const setSettingsOpen = useStore((state) => state.setSettingsOpen);
+  const refreshGithubStatus = useStore((state) => state.refreshGithubStatus);
   const refreshAiStatus = useStore((state) => state.refreshAiStatus);
   const refreshPerplexityStatus = useStore(
     (state) => state.refreshPerplexityStatus,
@@ -24,9 +25,10 @@ function App() {
   }, [resolvedTheme]);
 
   useEffect(() => {
+    void refreshGithubStatus();
     void refreshAiStatus();
     void refreshPerplexityStatus();
-  }, [refreshAiStatus, refreshPerplexityStatus]);
+  }, [refreshGithubStatus, refreshAiStatus, refreshPerplexityStatus]);
 
   // Native app menu: Settings… (Cmd+,).
   useEffect(() => {
@@ -64,6 +66,7 @@ function App() {
         <SettingsDialog
           onClose={() => setSettingsOpen(false)}
           onChanged={() => {
+            void refreshGithubStatus();
             void refreshAiStatus();
             void refreshPerplexityStatus();
           }}
