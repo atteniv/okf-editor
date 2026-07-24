@@ -61,6 +61,19 @@ describe("first-time setup guidance", () => {
     expect(useStore.getState().settingsOpen).toBe(true);
   });
 
+  it("opens a sample picker from the splash page", () => {
+    const view = renderStartScreen();
+    const trySample = Array.from(view.querySelectorAll("button")).find(
+      (button) => button.textContent === "Try a sample bundle…",
+    );
+
+    expect(trySample).toBeDefined();
+    act(() => trySample?.click());
+    expect(view.textContent).toContain("Choose a sample bundle");
+    expect(view.textContent).toContain("Google Bitcoin");
+    expect(view.textContent).toContain("Google Analytics 4");
+  });
+
   it("shows which credentials are connected and which are optional", () => {
     useStore.setState({
       githubReady: true,
